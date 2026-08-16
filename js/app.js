@@ -788,7 +788,8 @@ document.addEventListener('DOMContentLoaded', () => {
     hideError();
 
     const diff = runLCSDiff(textA, textB);
-    renderDiffOutput(diff, textareaJsonA, divJsonADiff, textareaJsonB, divJsonBDiff);
+    const processedDiff = processDiffWithModified(diff);
+    renderDiffOutput(processedDiff, textareaJsonA, divJsonADiff, textareaJsonB, divJsonBDiff);
     
     btnCompareJson.style.display = 'none';
     btnEditJsonCompare.style.display = 'inline-flex';
@@ -888,6 +889,40 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#039;');
   }
 
+  function processDiffWithModified(diff) {
+    const processed = [];
+    for (let idx = 0; idx < diff.length; idx++) {
+      const current = diff[idx];
+      const next = diff[idx + 1];
+      
+      if (next && current.type === 'removed' && next.type === 'added' && current.valA && next.valB) {
+        // Regex matches: spacing, "key", ":", value (non-greedy), optional trailing comma
+        const keyValRegex = /^(\s*)"([^"]+)"\s*:\s*(.*?)(,?)$/;
+        const matchA = current.valA.match(keyValRegex);
+        const matchB = next.valB.match(keyValRegex);
+        
+        if (matchA && matchB && matchA[2] === matchB[2]) {
+          // Matching key!
+          processed.push({
+            type: 'modified',
+            indent: matchA[1],
+            key: matchA[2],
+            valA: matchA[3],
+            valB: matchB[3],
+            commaA: matchA[4] || '',
+            commaB: matchB[4] || '',
+            rawA: current.valA,
+            rawB: next.valB
+          });
+          idx++; // Skip next item since we merged it
+          continue;
+        }
+      }
+      processed.push(current);
+    }
+    return processed;
+  }
+
   function renderDiffOutput(diff, textareaA, divA, textareaB, divB) {
     textareaA.style.display = 'none';
     textareaB.style.display = 'none';
@@ -898,18 +933,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let htmlB = '';
     
     diff.forEach(item => {
-      const escA = escapeHTML(item.valA);
-      const escB = escapeHTML(item.valB);
-      
       if (item.type === 'unchanged') {
+        const escA = escapeHTML(item.valA);
+        const escB = escapeHTML(item.valB);
         htmlA += `<div class="diff-line">${escA || '&nbsp;'}</div>`;
         htmlB += `<div class="diff-line">${escB || '&nbsp;'}</div>`;
       } else if (item.type === 'removed') {
+        const escA = escapeHTML(item.valA);
         htmlA += `<div class="diff-line removed">- ${escA}</div>`;
         htmlB += `<div class="diff-line empty-placeholder">&nbsp;</div>`;
       } else if (item.type === 'added') {
+        const escB = escapeHTML(item.valB);
         htmlA += `<div class="diff-line empty-placeholder">&nbsp;</div>`;
         htmlB += `<div class="diff-line added">+ ${escB}</div>`;
+      } else if (item.type === 'modified') {
+        const escIndent = escapeHTML(item.indent);
+        const escKey = escapeHTML(item.key);
+        const escValA = escapeHTML(item.valA);
+        const escValB = escapeHTML(item.valB);
+        const escCommaA = escapeHTML(item.commaA);
+        const escCommaB = escapeHTML(item.commaB);
+        
+        htmlA += `<div class="diff-line modified">${escIndent}"${escKey}": <span class="diff-val-removed">${escValA}</span>${escCommaA}</div>`;
+        htmlB += `<div class="diff-line modified">${escIndent}"${escKey}": <span class="diff-val-added">${escValB}</span>${escCommaB}</div>`;
       }
     });
     
@@ -948,4 +994,78 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Could not copy text: ', err);
     });
   }
+
+  // --- 7. Helper: Drag & Drop File Upload Utility ---
+  function setupDragAndDrop(textarea) {
+    if (!textarea) return;
+
+    textarea.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.classList.add('drag-over');
+    });
+
+    textarea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.classList.add('drag-over');
+    });
+
+    textarea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.classList.remove('drag-over');
+    });
+
+    textarea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.classList.remove('drag-over');
+
+      const dt = e.dataTransfer;
+      if (!dt) {
+        console.warn("DragAndDrop: e.dataTransfer is null or undefined.");
+        return;
+      }
+
+      const files = dt.files;
+      console.log("DragAndDrop: Dropped files count = ", files ? files.length : 0);
+
+      if (files && files.length > 0) {
+        const file = files[0];
+        console.log("DragAndDrop: File detected:", file.name, "size:", file.size, "bytes");
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          console.log("DragAndDrop: FileReader loaded successfully. Content length:", event.target.result.length);
+          textarea.value = event.target.result;
+          textarea.dispatchEvent(new Event('input'));
+        };
+
+        reader.onerror = (err) => {
+          console.error("DragAndDrop: FileReader error: ", err);
+        };
+
+        reader.readAsText(file);
+      } else {
+        // Fallback: If text was dragged instead of a file
+        const text = dt.getData('text/plain') || dt.getData('text');
+        if (text) {
+          console.log("DragAndDrop: Text drop fallback detected. Content length:", text.length);
+          textarea.value = text;
+          textarea.dispatchEvent(new Event('input'));
+        } else {
+          console.warn("DragAndDrop: No files or text data found in dropped payload.");
+        }
+      }
+    });
+  }
+
+  // Bind drag-and-drop to all editor input textareas
+  setupDragAndDrop(textareaJson);
+  setupDragAndDrop(textareaMysql);
+  setupDragAndDrop(textareaJsonA);
+  setupDragAndDrop(textareaJsonB);
+  setupDragAndDrop(textareaTextA);
+  setupDragAndDrop(textareaTextB);
 });
