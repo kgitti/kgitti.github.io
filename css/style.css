@@ -472,8 +472,8 @@ footer {
 
 /* --- Navigation Sidebar --- */
 .sidebar {
-  width: 160px;
-  background-color: var(--bg-gutter);
+  width: 200px;
+  background-color: var(--bg-panel); /* Changed to white for hierarchy */
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -675,4 +675,392 @@ footer {
   .panel-right {
     height: 50% !important;
   }
+}
+
+/* --- Notes Tool Custom CSS Styles (Compact Light Theme) --- */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-gutter);
+}
+
+.dropdown-new-container {
+  position: relative;
+}
+
+.btn-new {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: 1px solid #1d4ed8;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background-color 0.1s ease;
+}
+
+.btn-new:hover {
+  background-color: #1d4ed8;
+}
+
+.new-note-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  min-width: 130px;
+  overflow: hidden;
+}
+
+.new-note-opt {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-key);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.new-note-opt:hover {
+  background-color: var(--btn-bg-hover);
+  color: var(--text-main);
+}
+
+.sidebar-note-list {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+/* Notes Workspace Styling */
+.notes-workspace-header {
+  padding: 8px 12px 6px 12px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.note-title-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 2px 0;
+}
+
+.note-title-input:focus {
+  border-bottom: 1px dashed var(--border-focus);
+}
+
+.note-type-display {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.note-type-display span {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Tabs inside panel-header */
+.note-tabs {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+}
+
+.note-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transition: all 0.1s ease;
+}
+
+.note-tab:hover {
+  color: var(--text-main);
+}
+
+.note-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.note-tab-content {
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+.note-tab-content.active-tab-content {
+  display: block;
+}
+
+/* Checklist UI Layout */
+.task-list-wrapper {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-progress-container {
+  background-color: var(--bg-gutter);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.task-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.task-progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.task-progress-bar-fill {
+  height: 100%;
+  background-color: #10b981; /* green */
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.task-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.task-filter-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-muted);
+  background-color: var(--bg-panel);
+}
+
+.task-filter-btn:hover {
+  background-color: var(--btn-bg-hover);
+  color: var(--text-main);
+}
+
+.task-filter-btn.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.task-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-item-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.task-item-card:hover {
+  background-color: #f8fafc;
+}
+
+.task-item-card.completed {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.task-item-card.completed span {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-item-checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* SVG Mindmap container styling */
+.mindmap-svg-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: auto;
+  background-color: #fafbfc;
+}
+
+.mindmap-svg {
+  min-width: 800px;
+  min-height: 500px;
+}
+
+.mindmap-node-rect {
+  fill: #ffffff;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+  rx: 4;
+  ry: 4;
+}
+
+.mindmap-node-rect.root {
+  fill: #eff6ff;
+  stroke: #3b82f6;
+  stroke-dasharray: none;
+}
+
+.mindmap-node-rect:hover {
+  stroke: #2563eb;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+
+.mindmap-node-text {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--text-main);
+  pointer-events: none;
+}
+
+.mindmap-node-text.root {
+  font-weight: 600;
+}
+
+.mindmap-edge-path {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+/* --- Double Sidebar Styles --- */
+.sidebar-primary {
+  width: 60px;
+  background-color: var(--bg-gutter); /* #f1f5f9 */
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  user-select: none;
+  height: 100%;
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+/* Primary Sidebar collapsed state */
+.sidebar-primary-collapsed .sidebar-primary {
+  width: 0;
+  opacity: 0;
+  border-right: none;
+}
+
+.sidebar-primary-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.sidebar-primary-btn:hover {
+  background-color: var(--btn-bg-hover);
+  color: var(--text-main);
+}
+
+.sidebar-primary-btn.active {
+  background-color: var(--bg-panel);
+  border-color: var(--border-color);
+  color: #2563eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.primary-icon {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.primary-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.subnav-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.subnav-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.sidebar-header .subnav-title {
+  margin-left: 2px;
 }

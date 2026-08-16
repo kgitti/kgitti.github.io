@@ -60,36 +60,107 @@
         <button id="btn-text-compare-edit" class="btn" style="display: none;" title="Back to editing">Edit</button>
         <button id="btn-text-compare-clear" class="btn btn-danger" title="Clear inputs and diff">Clear</button>
       </div>
+
+      <!-- Toolbar: Notes -->
+      <div id="toolbar-notes" class="toolbar-group" style="display: none;">
+        <div class="indent-select-container">
+          <label for="select-note-category">Category:</label>
+          <select id="select-note-category" class="indent-select">
+            <option value="Work" selected>Work</option>
+            <option value="Personal">Personal</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+        <span class="status-save-msg" style="font-size: 11px; color: var(--color-string); margin: 0 4px; display: inline-flex; align-items: center; gap: 3px;">
+          <span style="font-weight: bold;">✓</span> Saved Locally
+        </span>
+        <button id="btn-note-export" class="btn" title="Export current note">📥 Export</button>
+        <button id="btn-notes-export-all" class="btn" title="Backup all notes to ZIP">📦 Export All (ZIP)</button>
+        <button id="btn-note-delete" class="btn btn-danger" title="Delete current note">🗑 Delete</button>
+      </div>
     </div>
   </header>
 
   <!-- Main Container -->
   <div class="main-container">
-    <!-- Left Navigation Sidebar -->
+    <!-- Primary (Master) Sidebar -->
+    <aside class="sidebar-primary">
+      <button class="sidebar-primary-btn active" data-group="dev" title="Developer Tools">
+        <span class="primary-icon">⚙️</span>
+        <span class="primary-label">Dev</span>
+      </button>
+      <button class="sidebar-primary-btn" data-group="notes" title="Notes & Mindmaps">
+        <span class="primary-icon">📝</span>
+        <span class="primary-label">Note</span>
+      </button>
+    </aside>
+
+    <!-- Secondary (Detail) Sidebar -->
     <aside id="sidebar" class="sidebar">
-      <nav class="sidebar-nav">
-        <!-- Group: Format -->
-        <div class="sidebar-group">
-          <div class="sidebar-group-title">Format</div>
-          <button class="sidebar-item active" data-tool="json-format">
-            <span class="sidebar-item-dot">•</span> JSON
-          </button>
-          <button class="sidebar-item" data-tool="mysql-format">
-            <span class="sidebar-item-dot">•</span> MySQL
-          </button>
+      <!-- Subnav Group: Dev -->
+      <div id="subnav-dev" class="subnav-group">
+        <div class="sidebar-header">
+          <button class="btn-sidebar-close btn-hamburger" title="Collapse sidebar">☰</button>
+          <span class="subnav-title">Dev Tools</span>
         </div>
-        
-        <!-- Group: Compare -->
-        <div class="sidebar-group">
-          <div class="sidebar-group-title">Compare</div>
-          <button class="sidebar-item" data-tool="json-compare">
-            <span class="sidebar-item-dot">•</span> JSON
-          </button>
-          <button class="sidebar-item" data-tool="text-compare">
-            <span class="sidebar-item-dot">•</span> Text
-          </button>
+        <nav class="sidebar-nav">
+          <!-- Group: Format -->
+          <div class="sidebar-group">
+            <div class="sidebar-group-title">Format</div>
+            <button class="sidebar-item active" data-tool="json-format">
+              <span class="sidebar-item-dot">•</span> JSON
+            </button>
+            <button class="sidebar-item" data-tool="mysql-format">
+              <span class="sidebar-item-dot">•</span> MySQL
+            </button>
+          </div>
+          
+          <!-- Group: Compare -->
+          <div class="sidebar-group">
+            <div class="sidebar-group-title">Compare</div>
+            <button class="sidebar-item" data-tool="text-compare">
+              <span class="sidebar-item-dot">•</span> TEXT
+            </button>
+            <button class="sidebar-item" data-tool="json-compare">
+              <span class="sidebar-item-dot">•</span> JSON
+            </button>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Subnav Group: Notes -->
+      <div id="subnav-notes" class="subnav-group" style="display: none;">
+        <div class="sidebar-header">
+          <button class="btn-sidebar-close btn-hamburger" title="Collapse sidebar">☰</button>
+          <span class="subnav-title">Note</span>
+          <div class="dropdown-new-container">
+            <button id="btn-new-dropdown" class="btn btn-new">+ New</button>
+            <div id="new-note-dropdown" class="new-note-dropdown" style="display: none;">
+              <button class="new-note-opt" data-type="text">📄 Plain Text</button>
+              <button class="new-note-opt" data-type="markdown">✍️ Markdown</button>
+              <button class="new-note-opt" data-type="yaml">🌿 YAML Mindmap</button>
+              <button class="new-note-opt" data-type="task">✅ Task List</button>
+            </div>
+          </div>
         </div>
-      </nav>
+        <nav class="sidebar-nav">
+          <!-- Group: Task -->
+          <div class="sidebar-group" id="sidebar-group-tasks" style="display: none;">
+            <div class="sidebar-group-title">Task</div>
+            <div id="sidebar-tasks-list" class="sidebar-note-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- Group: File -->
+          <div class="sidebar-group" id="sidebar-group-files" style="display: none;">
+            <div class="sidebar-group-title">File</div>
+            <div id="sidebar-files-list" class="sidebar-note-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </nav>
+      </div>
     </aside>
 
     <!-- Main Workspace Area -->
@@ -259,6 +330,62 @@
           </section>
         </div>
       </div>
+
+      <!-- TOOL: Notes Workspace -->
+      <div id="tool-notes" class="tool-view" style="display: none;">
+        <div class="notes-workspace-header">
+          <input type="text" id="note-title-input" class="note-title-input" placeholder="Note Title" value="Project Architecture">
+          <div class="note-type-display">
+            Note Type: <span id="note-type-label">YAML / Mindmap</span>
+          </div>
+        </div>
+        
+        <div class="split-view">
+          <!-- Left side: Source Editor -->
+          <section class="panel panel-left" aria-label="Note Source Editor">
+            <div class="panel-header">
+              <span id="note-editor-title">YAML Editor</span>
+            </div>
+            <div class="panel-content">
+              <div class="editor-wrapper">
+                <div id="line-numbers-notes" class="gutter"></div>
+                <textarea 
+                  id="note-textarea" 
+                  class="json-textarea" 
+                  placeholder="Type note content here..." 
+                  spellcheck="false"
+                  autocomplete="off"
+                ></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Resizer Divider -->
+          <div id="panel-resizer-notes" class="resizer" title="Drag to resize panels"></div>
+
+          <!-- Right side: Visualizer / Previewer -->
+          <section class="panel panel-right" aria-label="Note Visualizer">
+            <div class="panel-header" style="justify-content: flex-start; gap: 12px; text-transform: none; letter-spacing: normal;">
+              <div class="note-tabs">
+                <button class="note-tab active" data-tab="preview" id="tab-note-preview">Visualizer</button>
+                <button class="note-tab" data-tab="tree" id="tab-note-tree" style="display: none;">Tree View</button>
+              </div>
+            </div>
+            
+            <div class="viewer-wrapper">
+              <!-- Content Panels -->
+              <!-- Preview Tab Content (Markdown, Mindmap SVG, Checklist UI) -->
+              <div id="note-preview-content" class="note-tab-content active-tab-content">
+                <!-- Renders either Markdown HTML, SVG Mindmap, or Task UI cards -->
+              </div>
+              <!-- Tree View Tab Content (for YAML Tree structure) -->
+              <div id="note-tree-content" class="note-tab-content tree-container" style="display: none;">
+                <!-- Renders collapsible tree (JSON format style) -->
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
       
     </main>
   </div>
@@ -280,6 +407,7 @@
     </div>
   </footer>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
