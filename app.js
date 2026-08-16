@@ -1,82 +1,266 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
-  const textarea = document.getElementById('json-textarea');
-  const lineNumbers = document.getElementById('line-numbers');
-  const treeContainer = document.getElementById('tree-container');
+  // --- DOM Elements ---
+  const mainContainer = document.querySelector('.main-container');
+  const sidebar = document.getElementById('sidebar');
+  const btnSidebarToggle = document.getElementById('btn-sidebar-toggle');
+  const headerTitle = document.getElementById('header-title');
   
-  const btnFormat = document.getElementById('btn-format');
-  const btnCompress = document.getElementById('btn-compress');
-  const btnEscape = document.getElementById('btn-escape');
-  const btnUnescape = document.getElementById('btn-unescape');
-  const btnClear = document.getElementById('btn-clear');
-  const btnCopy = document.getElementById('btn-copy');
-  
-  const selectIndent = document.getElementById('select-indent');
+  // Sidebar Items & Tool Panels
+  const sidebarItems = document.querySelectorAll('.sidebar-item');
+  const toolViews = document.querySelectorAll('.tool-view');
+  const toolbarGroups = document.querySelectorAll('.toolbar-group');
+
+  // --- TOOL: JSON Formatter Elements ---
+  const textareaJson = document.getElementById('json-textarea');
+  const lineNumbersJson = document.getElementById('line-numbers');
+  const treeContainerJson = document.getElementById('tree-container');
+  const btnFormatJson = document.getElementById('btn-format');
+  const btnCompressJson = document.getElementById('btn-compress');
+  const btnEscapeJson = document.getElementById('btn-escape');
+  const btnUnescapeJson = document.getElementById('btn-unescape');
+  const btnCopyJson = document.getElementById('btn-copy');
+  const btnClearJson = document.getElementById('btn-clear');
+  const selectIndentJson = document.getElementById('select-indent');
+  const searchInputJson = document.getElementById('search-input');
+  const searchCountJson = document.getElementById('search-count');
+
+  // --- TOOL: MySQL Formatter Elements ---
+  const textareaMysql = document.getElementById('mysql-textarea');
+  const lineNumbersMysql = document.getElementById('line-numbers-mysql');
+  const textareaMysqlOut = document.getElementById('mysql-textarea-out');
+  const lineNumbersMysqlOut = document.getElementById('line-numbers-mysql-out');
+  const btnFormatMysql = document.getElementById('btn-mysql-format');
+  const btnCopyMysql = document.getElementById('btn-mysql-copy');
+  const btnClearMysql = document.getElementById('btn-mysql-clear');
+
+  // --- TOOL: JSON Compare Elements ---
+  const textareaJsonA = document.getElementById('json-a-textarea');
+  const textareaJsonB = document.getElementById('json-b-textarea');
+  const divJsonADiff = document.getElementById('json-a-diff');
+  const divJsonBDiff = document.getElementById('json-b-diff');
+  const btnCompareJson = document.getElementById('btn-json-compare');
+  const btnEditJsonCompare = document.getElementById('btn-json-compare-edit');
+  const btnClearJsonCompare = document.getElementById('btn-json-compare-clear');
+
+  // --- TOOL: Text Compare Elements ---
+  const textareaTextA = document.getElementById('text-a-textarea');
+  const textareaTextB = document.getElementById('text-b-textarea');
+  const divTextADiff = document.getElementById('text-a-diff');
+  const divTextBDiff = document.getElementById('text-b-diff');
+  const btnCompareText = document.getElementById('btn-text-compare');
+  const btnEditTextCompare = document.getElementById('btn-text-compare-edit');
+  const btnClearTextCompare = document.getElementById('btn-text-compare-clear');
+
+  // --- Structural Elements ---
   const alertBar = document.getElementById('alert-bar');
   const alertMsg = document.getElementById('alert-msg');
-  
-  const searchInput = document.getElementById('search-input');
-  const searchCount = document.getElementById('search-count');
-  
   const statusSize = document.getElementById('status-size');
   const statusLines = document.getElementById('status-lines');
 
-  // Initial setup
-  updateLineNumbers();
-  updateStatus();
-
-  // Scroll Synchronization: Sync gutter scroll with textarea scroll
-  textarea.addEventListener('scroll', () => {
-    lineNumbers.scrollTop = textarea.scrollTop;
+  // --- 1. Sidebar Toggling & SPA Switcher ---
+  
+  // Toggle sidebar visibility
+  btnSidebarToggle.addEventListener('click', () => {
+    mainContainer.classList.toggle('sidebar-collapsed');
   });
 
-  // Track text changes
-  textarea.addEventListener('input', () => {
-    updateLineNumbers();
-    updateStatus();
-    // Parse on input to validate in real-time, but don't force Tree View render unless requested
-    validateJSONQuietly();
+  // Switch tools (Tabs)
+  sidebarItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const toolName = item.getAttribute('data-tool');
+      
+      // Active states in sidebar
+      sidebarItems.forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      
+      // Show chosen panel, hide others
+      toolViews.forEach(view => {
+        view.classList.remove('active-tool');
+        view.style.display = 'none';
+      });
+      const activeView = document.getElementById(`tool-${toolName}`);
+      if (activeView) {
+        activeView.classList.add('active-tool');
+        activeView.style.display = 'flex';
+      }
+      
+      // Show chosen toolbar group, hide others
+      toolbarGroups.forEach(group => {
+        group.style.display = 'none';
+      });
+      const activeToolbar = document.getElementById(`toolbar-${toolName}`);
+      if (activeToolbar) {
+        activeToolbar.style.display = 'flex';
+      }
+      
+      // Update Header Title
+      updateHeaderTitle(toolName);
+      
+      // Hide error bar on tab switch to avoid confusion
+      hideError();
+      
+      // Update status bar for the new active editor
+      updateStatusForTool(toolName);
+
+      // On mobile, auto-close sidebar on item selection
+      if (window.innerWidth <= 768) {
+        mainContainer.classList.add('sidebar-collapsed');
+      }
+    });
   });
 
-  // Event Listeners for Toolbar buttons
-  btnFormat.addEventListener('click', formatJSON);
-  btnCompress.addEventListener('click', compressJSON);
-  btnEscape.addEventListener('click', escapeJSON);
-  btnUnescape.addEventListener('click', unescapeJSON);
-  btnClear.addEventListener('click', clearAll);
-  btnCopy.addEventListener('click', copyToClipboard);
-
-  // Re-run format if indentation setting changes
-  selectIndent.addEventListener('change', () => {
-    if (textarea.value.trim()) {
-      formatJSON();
+  function updateHeaderTitle(toolName) {
+    switch (toolName) {
+      case 'json-format':
+        headerTitle.textContent = 'JSON Viewer & Formatter';
+        break;
+      case 'mysql-format':
+        headerTitle.textContent = 'MySQL Formatter';
+        break;
+      case 'json-compare':
+        headerTitle.textContent = 'JSON Compare';
+        break;
+      case 'text-compare':
+        headerTitle.textContent = 'Text Compare';
+        break;
     }
-  });
-
-  // Search input handler
-  searchInput.addEventListener('input', filterTree);
-
-  // --- Line Numbers ---
-  function updateLineNumbers() {
-    const text = textarea.value;
-    const lines = text.split('\n');
-    const totalLines = Math.max(lines.length, 1);
-    
-    let html = '';
-    for (let i = 1; i <= totalLines; i++) {
-      html += `<span class="gutter-num" id="ln-${i}">${i}</span>`;
-    }
-    lineNumbers.innerHTML = html;
-    
-    // Maintain scroll sync
-    lineNumbers.scrollTop = textarea.scrollTop;
   }
 
-  // --- Status Bar Update ---
-  function updateStatus() {
-    const text = textarea.value;
+  // --- 2. Scroll Sync & Line Numbers Helper ---
+  
+  function setupLineSync(textarea, gutterEl) {
+    if (!textarea || !gutterEl) return;
     
-    // Bytes size
+    const updateGutter = () => {
+      const text = textarea.value;
+      const lines = text.split('\n');
+      const totalLines = Math.max(lines.length, 1);
+      
+      let html = '';
+      for (let i = 1; i <= totalLines; i++) {
+        html += `<span class="gutter-num" id="ln-${gutterEl.id}-${i}">${i}</span>`;
+      }
+      gutterEl.innerHTML = html;
+      gutterEl.scrollTop = textarea.scrollTop;
+    };
+
+    textarea.addEventListener('scroll', () => {
+      gutterEl.scrollTop = textarea.scrollTop;
+    });
+
+    textarea.addEventListener('input', updateGutter);
+    
+    // Initial run
+    updateGutter();
+    return updateGutter;
+  }
+
+  // Bind line number synchronization
+  const updateLinesJson = setupLineSync(textareaJson, lineNumbersJson);
+  const updateLinesMysql = setupLineSync(textareaMysql, lineNumbersMysql);
+  const updateLinesMysqlOut = setupLineSync(textareaMysqlOut, lineNumbersMysqlOut);
+
+  // Sync scroll for side-by-side diff divs
+  function setupDiffScrollSync(divA, divB) {
+    let activeScrolling = null;
+    
+    divA.addEventListener('scroll', () => {
+      if (activeScrolling === null || activeScrolling === divA) {
+        activeScrolling = divA;
+        divB.scrollTop = divA.scrollTop;
+        divB.scrollLeft = divA.scrollLeft;
+      }
+    });
+    
+    divB.addEventListener('scroll', () => {
+      if (activeScrolling === null || activeScrolling === divB) {
+        activeScrolling = divB;
+        divA.scrollTop = divB.scrollTop;
+        divA.scrollLeft = divB.scrollLeft;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      activeScrolling = null;
+    });
+  }
+  setupDiffScrollSync(divJsonADiff, divJsonBDiff);
+  setupDiffScrollSync(divTextADiff, divTextBDiff);
+
+  // --- 3. Split Panels Resize Handlers ---
+  
+  function setupResizer(resizerId, leftPanel, container) {
+    if (!resizerId || !leftPanel || !container) return;
+    
+    const resizer = document.getElementById(resizerId);
+    if (!resizer) return;
+    
+    leftPanel.style.width = '50%';
+    leftPanel.style.flex = 'none';
+
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      resizer.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      
+      const containerRect = container.getBoundingClientRect();
+      const newLeftWidth = e.clientX - containerRect.left;
+      
+      const minWidth = 150;
+      const maxWidth = containerRect.width - 150;
+      
+      if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
+        leftPanel.style.width = `${newLeftWidth}px`;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        resizer.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    });
+  }
+
+  // Bind drag-to-resize separators for each view
+  setupResizer('panel-resizer', document.querySelector('#tool-json-format .panel-left'), document.querySelector('#tool-json-format .split-view'));
+  setupResizer('panel-resizer-mysql', document.querySelector('#tool-mysql-format .panel-left'), document.querySelector('#tool-mysql-format .split-view'));
+  setupResizer('panel-resizer-json-comp', document.querySelector('#tool-json-compare .panel-left'), document.querySelector('#tool-json-compare .split-view'));
+  setupResizer('panel-resizer-text-comp', document.querySelector('#tool-text-compare .panel-left'), document.querySelector('#tool-text-compare .split-view'));
+
+  // --- 4. Status Bar Actions ---
+  
+  function getActiveToolName() {
+    const activeItem = document.querySelector('.sidebar-item.active');
+    return activeItem ? activeItem.getAttribute('data-tool') : 'json-format';
+  }
+
+  function updateStatusForTool(toolName) {
+    let text = '';
+    switch (toolName) {
+      case 'json-format':
+        text = textareaJson.value;
+        break;
+      case 'mysql-format':
+        text = textareaMysql.value;
+        break;
+      case 'json-compare':
+        text = textareaJsonA.value + textareaJsonB.value;
+        break;
+      case 'text-compare':
+        text = textareaTextA.value + textareaTextB.value;
+        break;
+    }
+    
     const bytes = new Blob([text]).size;
     let sizeStr = '0 B';
     if (bytes >= 1048576) {
@@ -87,29 +271,39 @@ document.addEventListener('DOMContentLoaded', () => {
       sizeStr = bytes + ' B';
     }
     
-    // Lines count
     const totalLines = text ? text.split('\n').length : 0;
     
     statusSize.textContent = `Size: ${sizeStr}`;
     statusLines.textContent = `Lines: ${totalLines}`;
   }
 
-  // --- Alert Notifications ---
-  function showError(message, lineNum = null) {
+  // Listen to inputs of all text areas to update status bar
+  const allTextareas = [textareaJson, textareaMysql, textareaJsonA, textareaJsonB, textareaTextA, textareaTextB];
+  allTextareas.forEach(ta => {
+    ta.addEventListener('input', () => {
+      updateStatusForTool(getActiveToolName());
+    });
+  });
+
+  // Initial update
+  updateStatusForTool('json-format');
+
+  // --- 5. Alert Notifications ---
+  
+  function showError(message, lineNum = null, gutterId = null) {
     alertMsg.textContent = message;
     alertBar.classList.add('active');
     
-    // Clear previous error lines in gutter
+    // Clear previous error lines
     document.querySelectorAll('.gutter-num.error-line').forEach(el => {
       el.classList.remove('error-line');
     });
     
-    // Highlight error line if provided
-    if (lineNum) {
-      const errorGutter = document.getElementById(`ln-${lineNum}`);
+    // Highlight specific line in gutter
+    if (lineNum && gutterId) {
+      const errorGutter = document.getElementById(`ln-${gutterId}-${lineNum}`);
       if (errorGutter) {
         errorGutter.classList.add('error-line');
-        // Scroll the gutter to the error
         errorGutter.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
@@ -122,124 +316,97 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Error Parsing Helper ---
   function extractLineNumber(error, text) {
-    // 1. Try to find "line X" pattern directly from error message
     const lineMatch = error.message.match(/line (\d+)/i);
     if (lineMatch) {
       return parseInt(lineMatch[1], 10);
     }
-    
-    // 2. Try to find "position X" pattern and compute line number
     const posMatch = error.message.match(/position (\d+)/i);
     if (posMatch) {
       const pos = parseInt(posMatch[1], 10);
-      const beforeErrorText = text.substring(0, pos);
-      return beforeErrorText.split('\n').length;
+      return text.substring(0, pos).split('\n').length;
     }
-    
     return null;
   }
 
-  // --- Real-time Validation (Without rendering Tree View) ---
+  // --- TOOL ACTION: JSON Viewer & Formatter ---
+  
   function validateJSONQuietly() {
-    const text = textarea.value.trim();
+    const text = textareaJson.value.trim();
     if (!text) {
       hideError();
       return true;
     }
-    
     try {
       JSON.parse(text);
       hideError();
       return true;
     } catch (e) {
-      const lineNum = extractLineNumber(e, textarea.value);
-      showError(`Syntax Error: ${e.message}`, lineNum);
+      const lineNum = extractLineNumber(e, textareaJson.value);
+      showError(`Syntax Error: ${e.message}`, lineNum, lineNumbersJson.id);
       return false;
     }
   }
 
-  // --- Action: Format ---
-  function formatJSON() {
-    const text = textarea.value.trim();
+  textareaJson.addEventListener('input', validateJSONQuietly);
+
+  btnFormatJson.addEventListener('click', () => {
+    const text = textareaJson.value.trim();
     if (!text) return;
-    
     try {
       const parsed = JSON.parse(text);
       hideError();
       
-      const indentVal = selectIndent.value;
+      const indentVal = selectIndentJson.value;
       const indent = indentVal === 'tab' ? '\t' : parseInt(indentVal, 10);
       
       const formatted = JSON.stringify(parsed, null, indent);
-      textarea.value = formatted;
+      textareaJson.value = formatted;
       
-      updateLineNumbers();
-      updateStatus();
-      
-      // Render the tree viewer
+      updateLinesJson();
+      updateStatusForTool('json-format');
       buildJSONTree(parsed);
-      
     } catch (e) {
-      const lineNum = extractLineNumber(e, textarea.value);
-      showError(`Syntax Error: Failed to format. ${e.message}`, lineNum);
+      const lineNum = extractLineNumber(e, textareaJson.value);
+      showError(`Syntax Error: Failed to format JSON. ${e.message}`, lineNum, lineNumbersJson.id);
     }
-  }
+  });
 
-  // --- Action: Compress (Remove whitespace) ---
-  function compressJSON() {
-    const text = textarea.value.trim();
+  btnCompressJson.addEventListener('click', () => {
+    const text = textareaJson.value.trim();
     if (!text) return;
-    
     try {
       const parsed = JSON.parse(text);
       hideError();
-      
       const compressed = JSON.stringify(parsed);
-      textarea.value = compressed;
-      
-      updateLineNumbers();
-      updateStatus();
-      
-      // Render the tree viewer
+      textareaJson.value = compressed;
+      updateLinesJson();
+      updateStatusForTool('json-format');
       buildJSONTree(parsed);
-      
     } catch (e) {
-      const lineNum = extractLineNumber(e, textarea.value);
-      showError(`Syntax Error: Failed to compress. ${e.message}`, lineNum);
+      const lineNum = extractLineNumber(e, textareaJson.value);
+      showError(`Syntax Error: Failed to compress JSON. ${e.message}`, lineNum, lineNumbersJson.id);
     }
-  }
+  });
 
-  // --- Action: Escape (Turn text into escaped string literal) ---
-  function escapeJSON() {
-    const text = textarea.value;
+  btnEscapeJson.addEventListener('click', () => {
+    const text = textareaJson.value;
     if (!text) return;
-    
-    // We escape the raw text into a valid JSON string representation (with quotes)
     const escaped = JSON.stringify(text);
-    textarea.value = escaped;
-    
-    updateLineNumbers();
-    updateStatus();
-    hideError(); // Text operations don't trigger syntax errors
-    
-    // Render the single escaped string in the Tree View
+    textareaJson.value = escaped;
+    updateLinesJson();
+    updateStatusForTool('json-format');
+    hideError();
     buildJSONTree(escaped);
-  }
+  });
 
-  // --- Action: Unescape (Remove quotes/slashes back to raw content) ---
-  function unescapeJSON() {
-    const text = textarea.value.trim();
+  btnUnescapeJson.addEventListener('click', () => {
+    const text = textareaJson.value.trim();
     if (!text) return;
-    
     const unescaped = unescapeJSONString(text);
-    textarea.value = unescaped;
-    
-    updateLineNumbers();
-    updateStatus();
-    
-    // Try to parse the unescaped result as JSON and build tree; fallback to string representation if not valid JSON
+    textareaJson.value = unescaped;
+    updateLinesJson();
+    updateStatusForTool('json-format');
     try {
       const parsed = JSON.parse(unescaped);
       hideError();
@@ -248,31 +415,19 @@ document.addEventListener('DOMContentLoaded', () => {
       hideError();
       buildJSONTree(unescaped);
     }
-  }
+  });
 
-  // Helper function to unescape JSON strings
   function unescapeJSONString(str) {
     let input = str.trim();
-    
-    // Case 1: Wrapped in double quotes (standard JSON string)
     if (input.startsWith('"') && input.endsWith('"')) {
       try {
         return JSON.parse(input);
-      } catch (e) {
-        // Fall through
-      }
+      } catch (e) {}
     }
-    
-    // Case 2: Wrap and parse, escaping literal control characters first
     try {
-      const formattedSimple = input
-        .replace(/\r/g, '\\r')
-        .replace(/\n/g, '\\n')
-        .replace(/\t/g, '\\t');
-      
-      return JSON.parse('"' + formattedSimple + '"');
+      const formatted = input.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+      return JSON.parse('"' + formatted + '"');
     } catch (e) {
-      // Case 3: Fallback regex replacement if JSON.parse fails
       return input
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, '\\')
@@ -283,51 +438,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Action: Copy to Clipboard ---
-  function copyToClipboard() {
-    const text = textarea.value;
-    if (!text) return;
-    
-    navigator.clipboard.writeText(text).then(() => {
-      const originalText = btnCopy.innerHTML;
-      btnCopy.innerHTML = '✔ Copied!';
-      btnCopy.style.backgroundColor = '#dcfce7';
-      btnCopy.style.color = '#15803d';
-      btnCopy.style.borderColor = '#bbf7d0';
-      
-      setTimeout(() => {
-        btnCopy.innerHTML = originalText;
-        btnCopy.style.backgroundColor = '';
-        btnCopy.style.color = '';
-        btnCopy.style.borderColor = '';
-      }, 1500);
-    }).catch(err => {
-      console.error('Could not copy text: ', err);
-    });
-  }
+  btnCopyJson.addEventListener('click', () => {
+    copyTextHelper(textareaJson.value, btnCopyJson);
+  });
 
-  // --- Action: Clear All ---
-  function clearAll() {
-    textarea.value = '';
-    treeContainer.innerHTML = '';
+  btnClearJson.addEventListener('click', () => {
+    textareaJson.value = '';
+    treeContainerJson.innerHTML = '';
     hideError();
-    updateLineNumbers();
-    updateStatus();
-    searchInput.value = '';
-    searchCount.textContent = '';
-  }
+    updateLinesJson();
+    updateStatusForTool('json-format');
+    searchInputJson.value = '';
+    searchCountJson.textContent = '';
+  });
 
-  // --- Tree View Builder ---
+  // Render tree function
   function buildJSONTree(data) {
-    treeContainer.innerHTML = '';
-    
-    // Create root element
+    treeContainerJson.innerHTML = '';
     const rootEl = createNodeEl(null, data, true);
-    if (rootEl) {
-      treeContainer.appendChild(rootEl);
-    }
-    
-    // Filter tree in case search query is already filled
+    if (rootEl) treeContainerJson.appendChild(rootEl);
     filterTree();
   }
 
@@ -340,12 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Recursive element creator for JSON Nodes
   function createNodeEl(key, val, isLast) {
     const line = document.createElement('div');
     line.className = 'tree-node-line';
     
-    // 1. Key (if key is defined)
     if (key !== null) {
       const keySpan = document.createElement('span');
       keySpan.className = 'json-key';
@@ -360,9 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const type = typeof val;
     
-    // Handle Null
     if (val === null) {
-      // Add empty align spacer
       const spacer = document.createElement('span');
       spacer.className = 'tree-toggle-empty';
       line.insertBefore(spacer, line.firstChild || null);
@@ -371,12 +496,10 @@ document.addEventListener('DOMContentLoaded', () => {
       nullSpan.className = 'json-val-null';
       nullSpan.textContent = 'null';
       line.appendChild(nullSpan);
-      
       addComma(line, isLast);
       return line;
     }
     
-    // Handle String
     if (type === 'string') {
       const spacer = document.createElement('span');
       spacer.className = 'tree-toggle-empty';
@@ -386,12 +509,10 @@ document.addEventListener('DOMContentLoaded', () => {
       strSpan.className = 'json-val-string';
       strSpan.textContent = JSON.stringify(val);
       line.appendChild(strSpan);
-      
       addComma(line, isLast);
       return line;
     }
     
-    // Handle Number
     if (type === 'number') {
       const spacer = document.createElement('span');
       spacer.className = 'tree-toggle-empty';
@@ -401,12 +522,10 @@ document.addEventListener('DOMContentLoaded', () => {
       numSpan.className = 'json-val-number';
       numSpan.textContent = val;
       line.appendChild(numSpan);
-      
       addComma(line, isLast);
       return line;
     }
     
-    // Handle Boolean
     if (type === 'boolean') {
       const spacer = document.createElement('span');
       spacer.className = 'tree-toggle-empty';
@@ -416,17 +535,14 @@ document.addEventListener('DOMContentLoaded', () => {
       boolSpan.className = 'json-val-boolean';
       boolSpan.textContent = val;
       line.appendChild(boolSpan);
-      
       addComma(line, isLast);
       return line;
     }
     
-    // Handle Objects and Arrays (Recursive)
     if (type === 'object') {
       const isArray = Array.isArray(val);
       const keys = Object.keys(val);
       
-      // Chevron toggle
       const toggle = document.createElement('span');
       toggle.className = 'tree-toggle';
       toggle.textContent = '▼';
@@ -440,14 +556,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const childrenContainer = document.createElement('div');
       childrenContainer.className = 'tree-node-children';
       
-      // Collapsed summary text
       const collapsedText = document.createElement('span');
       collapsedText.className = 'json-collapsed-text';
       collapsedText.style.display = 'none';
       collapsedText.textContent = isArray ? `... ] /* Array(${keys.length}) */` : `... } /* Object(${keys.length}) */`;
       line.appendChild(collapsedText);
       
-      // Render children recursively
       keys.forEach((k, idx) => {
         const childLast = idx === keys.length - 1;
         const childEl = createNodeEl(isArray ? null : k, val[k], childLast);
@@ -455,7 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
         childrenContainer.appendChild(childEl);
       });
       
-      // Closing bracket line
       const closingLine = document.createElement('div');
       closingLine.className = 'tree-node-line';
       
@@ -469,7 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
       closingLine.appendChild(bracketClose);
       addComma(closingLine, isLast);
       
-      // Collapse / Expand toggle logic
       const toggleCollapse = () => {
         const isCollapsed = childrenContainer.style.display === 'none';
         if (isCollapsed) {
@@ -491,48 +603,34 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         toggleCollapse();
       });
-      
       collapsedText.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleCollapse();
       });
       
-      // Node Wrapper containing opening, children, and closing
       const nodeWrapper = document.createElement('div');
       nodeWrapper.appendChild(line);
       nodeWrapper.appendChild(childrenContainer);
       nodeWrapper.appendChild(closingLine);
       return nodeWrapper;
     }
-    
     return null;
   }
 
-  // --- Search & Filter Tree nodes ---
   function filterTree() {
-    const query = searchInput.value.trim().toLowerCase();
-    
-    // Clear previous highlights
+    const query = searchInputJson.value.trim().toLowerCase();
     document.querySelectorAll('.tree-node-line.matched').forEach(el => {
       el.classList.remove('matched');
     });
-    
     if (!query) {
-      searchCount.textContent = '';
+      searchCountJson.textContent = '';
       return;
     }
-    
     let matchCount = 0;
     const lines = document.querySelectorAll('.tree-node-line');
-    
     lines.forEach(line => {
-      // Don't match the toggle icons or bracket characters in searches
       const searchContentText = Array.from(line.childNodes)
-        .filter(node => {
-          return !node.classList?.contains('tree-toggle') && 
-                 !node.classList?.contains('tree-toggle-empty') &&
-                 !node.classList?.contains('json-bracket');
-        })
+        .filter(node => !node.classList?.contains('tree-toggle') && !node.classList?.contains('tree-toggle-empty') && !node.classList?.contains('json-bracket'))
         .map(node => node.textContent)
         .join(' ')
         .toLowerCase();
@@ -541,21 +639,16 @@ document.addEventListener('DOMContentLoaded', () => {
         line.classList.add('matched');
         matchCount++;
         
-        // Expand parents to make the match visible
         let parent = line.parentElement;
-        while (parent && parent !== treeContainer) {
+        while (parent && parent !== treeContainerJson) {
           if (parent.className === 'tree-node-children') {
-            // If collapsed, expand it
             if (parent.style.display === 'none') {
               parent.style.display = 'block';
-              
               const wrapper = parent.parentElement;
               if (wrapper) {
-                const firstLine = wrapper.querySelector(':scope > .tree-node-line');
                 const closingLine = wrapper.querySelector(':scope > .tree-node-line:last-child');
                 const collapsedText = wrapper.querySelector(':scope > .json-collapsed-text');
                 const toggle = wrapper.querySelector(':scope > .tree-toggle');
-                
                 if (closingLine) closingLine.style.display = 'block';
                 if (collapsedText) collapsedText.style.display = 'none';
                 if (toggle) {
@@ -569,49 +662,290 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+    searchCountJson.textContent = `${matchCount} match${matchCount !== 1 ? 'es' : ''}`;
+  }
+  searchInputJson.addEventListener('input', filterTree);
+
+  // --- TOOL ACTION: MySQL Formatter ---
+  
+  btnFormatMysql.addEventListener('click', () => {
+    const rawSql = textareaMysql.value.trim();
+    if (!rawSql) return;
     
-    searchCount.textContent = `${matchCount} match${matchCount !== 1 ? 'es' : ''}`;
+    const beautified = beautifySQL(rawSql);
+    textareaMysqlOut.value = beautified;
+    updateLinesMysqlOut();
+    updateStatusForTool('mysql-format');
+  });
+
+  btnCopyMysql.addEventListener('click', () => {
+    copyTextHelper(textareaMysqlOut.value, btnCopyMysql);
+  });
+
+  btnClearMysql.addEventListener('click', () => {
+    textareaMysql.value = '';
+    textareaMysqlOut.value = '';
+    updateLinesMysql();
+    updateLinesMysqlOut();
+    updateStatusForTool('mysql-format');
+  });
+
+  function beautifySQL(sql) {
+    if (!sql) return '';
+    
+    // Split query into tokens while preserving strings intact, supporting decimals and dots
+    const regex = /("[^"]*"|'[^']*'|`[^`]*`|\b\d+(?:\.\d+)?\b|\b[a-zA-Z_][a-zA-Z0-9_]*\b|[-+*\/=<>!]+|\.|\s+|,|;|\(|\))/g;
+    const tokens = sql.match(regex) || [sql];
+    
+    const keywords = new Set([
+      'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 
+      'ON', 'GROUP', 'ORDER', 'LIMIT', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 
+      'DELETE', 'CREATE', 'TABLE', 'ALTER', 'DROP', 'HAVING', 'IN', 'AS', 'UNION', 
+      'ALL', 'BY', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX'
+    ]);
+    
+    const majorClauses = new Set([
+      'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'GROUP', 'ORDER', 
+      'LIMIT', 'SET', 'VALUES', 'UNION', 'HAVING'
+    ]);
+    
+    let result = '';
+    
+    for (let i = 0; i < tokens.length; i++) {
+      let token = tokens[i];
+      const trimmed = token.trim();
+      
+      if (!trimmed) continue; // skip raw white spaces tokens
+      
+      const upper = trimmed.toUpperCase();
+      
+      if (keywords.has(upper)) {
+        token = upper; // convert to capitalized keywords
+      }
+      
+      if (token === 'SELECT') {
+        result += 'SELECT ';
+        continue;
+      }
+      
+      if (majorClauses.has(token)) {
+        result = result.trimEnd() + '\n' + token + ' ';
+        continue;
+      }
+      
+      if (token === 'AND' || token === 'OR') {
+        result = result.trimEnd() + '\n  ' + token + ' ';
+        continue;
+      }
+      
+      if (token === ',') {
+        result = result.trimEnd() + ', ';
+        continue;
+      }
+      
+      if (token === '(') {
+        result += '(';
+        continue;
+      }
+      
+      if (token === '.') {
+        result = result.trimEnd() + '.';
+        continue;
+      }
+      
+      if (token === ')') {
+        result = result.trimEnd() + ') ';
+        continue;
+      }
+      
+      result += token + ' ';
+    }
+    
+    return result.trim();
   }
 
-  // --- Resizable Split Panels ---
-  const resizer = document.getElementById('panel-resizer');
-  const leftPanel = document.querySelector('.panel-left');
-  const mainContainer = document.querySelector('.main-container');
+  // --- TOOL ACTION: JSON & Text Comparer (LCS Diff Engine) ---
+  
+  // JSON Compare Action
+  btnCompareJson.addEventListener('click', () => {
+    let textA = textareaJsonA.value.trim();
+    let textB = textareaJsonB.value.trim();
+    if (!textA && !textB) return;
 
-  // Set initial width to 50%
-  leftPanel.style.width = '50%';
-  leftPanel.style.flex = 'none';
-
-  let isResizing = false;
-
-  resizer.addEventListener('mousedown', (e) => {
-    isResizing = true;
-    resizer.classList.add('active');
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  });
-
-  document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    
-    const containerRect = mainContainer.getBoundingClientRect();
-    const newLeftWidth = e.clientX - containerRect.left;
-    
-    // Limits: minimum size for left or right panel is 150px
-    const minWidth = 150;
-    const maxWidth = containerRect.width - 150;
-    
-    if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
-      leftPanel.style.width = `${newLeftWidth}px`;
+    // Try formatting the JSON inputs first to ignore simple whitespace differences
+    try {
+      if (textA) textA = JSON.stringify(JSON.parse(textA), null, 2);
+    } catch(e) {
+      showError(`JSON A Syntax Error: ${e.message}`, null, null);
+      return;
     }
+    try {
+      if (textB) textB = JSON.stringify(JSON.parse(textB), null, 2);
+    } catch(e) {
+      showError(`JSON B Syntax Error: ${e.message}`, null, null);
+      return;
+    }
+    hideError();
+
+    const diff = runLCSDiff(textA, textB);
+    renderDiffOutput(diff, textareaJsonA, divJsonADiff, textareaJsonB, divJsonBDiff);
+    
+    btnCompareJson.style.display = 'none';
+    btnEditJsonCompare.style.display = 'inline-flex';
   });
 
-  document.addEventListener('mouseup', () => {
-    if (isResizing) {
-      isResizing = false;
-      resizer.classList.remove('active');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
+  btnEditJsonCompare.addEventListener('click', () => {
+    resetDiffView(textareaJsonA, divJsonADiff, textareaJsonB, divJsonBDiff);
+    btnCompareJson.style.display = 'inline-flex';
+    btnEditJsonCompare.style.display = 'none';
   });
+
+  btnClearJsonCompare.addEventListener('click', () => {
+    textareaJsonA.value = '';
+    textareaJsonB.value = '';
+    resetDiffView(textareaJsonA, divJsonADiff, textareaJsonB, divJsonBDiff);
+    btnCompareJson.style.display = 'inline-flex';
+    btnEditJsonCompare.style.display = 'none';
+    hideError();
+    updateStatusForTool('json-compare');
+  });
+
+  // Text Compare Action
+  btnCompareText.addEventListener('click', () => {
+    const textA = textareaTextA.value;
+    const textB = textareaTextB.value;
+    if (!textA && !textB) return;
+    
+    hideError();
+    const diff = runLCSDiff(textA, textB);
+    renderDiffOutput(diff, textareaTextA, divTextADiff, textareaTextB, divTextBDiff);
+    
+    btnCompareText.style.display = 'none';
+    btnEditTextCompare.style.display = 'inline-flex';
+  });
+
+  btnEditTextCompare.addEventListener('click', () => {
+    resetDiffView(textareaTextA, divTextADiff, textareaTextB, divTextBDiff);
+    btnCompareText.style.display = 'inline-flex';
+    btnEditTextCompare.style.display = 'none';
+  });
+
+  btnClearTextCompare.addEventListener('click', () => {
+    textareaTextA.value = '';
+    textareaTextB.value = '';
+    resetDiffView(textareaTextA, divTextADiff, textareaTextB, divTextBDiff);
+    btnCompareText.style.display = 'inline-flex';
+    btnEditTextCompare.style.display = 'none';
+    hideError();
+    updateStatusForTool('text-compare');
+  });
+
+  // Diff Rendering and LCS algorithm
+  function runLCSDiff(textA, textB) {
+    const linesA = textA.split('\n');
+    const linesB = textB.split('\n');
+    const n = linesA.length;
+    const m = linesB.length;
+    
+    const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+    
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        if (linesA[i - 1] === linesB[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+        } else {
+          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+    }
+    
+    let i = n, j = m;
+    const diff = [];
+    
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && linesA[i - 1] === linesB[j - 1]) {
+        diff.unshift({ type: 'unchanged', valA: linesA[i - 1], valB: linesB[j - 1] });
+        i--;
+        j--;
+      } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+        diff.unshift({ type: 'added', valA: null, valB: linesB[j - 1] });
+        j--;
+      } else {
+        diff.unshift({ type: 'removed', valA: linesA[i - 1], valB: null });
+        i--;
+      }
+    }
+    return diff;
+  }
+
+  function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderDiffOutput(diff, textareaA, divA, textareaB, divB) {
+    textareaA.style.display = 'none';
+    textareaB.style.display = 'none';
+    divA.style.display = 'block';
+    divB.style.display = 'block';
+    
+    let htmlA = '';
+    let htmlB = '';
+    
+    diff.forEach(item => {
+      const escA = escapeHTML(item.valA);
+      const escB = escapeHTML(item.valB);
+      
+      if (item.type === 'unchanged') {
+        htmlA += `<div class="diff-line">${escA || '&nbsp;'}</div>`;
+        htmlB += `<div class="diff-line">${escB || '&nbsp;'}</div>`;
+      } else if (item.type === 'removed') {
+        htmlA += `<div class="diff-line removed">- ${escA}</div>`;
+        htmlB += `<div class="diff-line empty-placeholder">&nbsp;</div>`;
+      } else if (item.type === 'added') {
+        htmlA += `<div class="diff-line empty-placeholder">&nbsp;</div>`;
+        htmlB += `<div class="diff-line added">+ ${escB}</div>`;
+      }
+    });
+    
+    divA.innerHTML = htmlA;
+    divB.innerHTML = htmlB;
+  }
+
+  function resetDiffView(textareaA, divA, textareaB, divB) {
+    textareaA.style.display = 'block';
+    textareaB.style.display = 'block';
+    divA.style.display = 'none';
+    divB.style.display = 'none';
+    divA.innerHTML = '';
+    divB.innerHTML = '';
+  }
+
+  // --- 6. Helper: Clipboard Copy Utility ---
+  
+  function copyTextHelper(text, btnElement) {
+    if (!text) return;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      const originalHTML = btnElement.innerHTML;
+      btnElement.innerHTML = '✔ Copied!';
+      btnElement.style.backgroundColor = '#dcfce7';
+      btnElement.style.color = '#15803d';
+      btnElement.style.borderColor = '#bbf7d0';
+      
+      setTimeout(() => {
+        btnElement.innerHTML = originalHTML;
+        btnElement.style.backgroundColor = '';
+        btnElement.style.color = '';
+        btnElement.style.borderColor = '';
+      }, 1500);
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+    });
+  }
 });

@@ -3,109 +3,265 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON Viewer & Formatter</title>
-  <meta name="description" content="A compact, lightweight, offline-ready JSON Viewer and Formatter. Beautify and compress JSON instantly on client-side.">
+  <title>Developer Tool Suite</title>
+  <meta name="description" content="A compact, lightweight, offline-ready Developer Tool Suite. Multi-tools including JSON Formatter, MySQL Formatter, and Diff Comparison utilities.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Header Bar -->
+  <!-- Top Header Bar (Single Row) -->
   <header>
     <div class="logo-section">
+      <!-- Hamburger Toggle Button -->
+      <button id="btn-sidebar-toggle" class="btn-hamburger" title="Toggle sidebar">☰</button>
       <h1>
         <span class="logo-icon">{ }</span> 
-        JSON Viewer & Formatter
+        <span id="header-title">JSON Viewer & Formatter</span>
       </h1>
     </div>
     
+    <!-- Contextual Toolbars -->
     <div class="toolbar">
-      <!-- Indentation setting selector -->
-      <div class="indent-select-container">
-        <label for="select-indent">Tab size:</label>
-        <select id="select-indent" class="indent-select">
-          <option value="2" selected>2 Spaces</option>
-          <option value="4">4 Spaces</option>
-          <option value="tab">Tabs</option>
-        </select>
+      <!-- Toolbar: JSON Format (Default) -->
+      <div id="toolbar-json-format" class="toolbar-group">
+        <div class="indent-select-container">
+          <label for="select-indent">Tab size:</label>
+          <select id="select-indent" class="indent-select">
+            <option value="2" selected>2 Spaces</option>
+            <option value="4">4 Spaces</option>
+            <option value="tab">Tabs</option>
+          </select>
+        </div>
+        <button id="btn-format" class="btn" title="Format JSON to be readable">Format</button>
+        <button id="btn-compress" class="btn" title="Remove whitespace to minify JSON">Compress</button>
+        <button id="btn-escape" class="btn" title="Escape quotes and control characters">Escape</button>
+        <button id="btn-unescape" class="btn" title="Unescape JSON string literal">Unescape</button>
+        <button id="btn-copy" class="btn" title="Copy to clipboard">Copy</button>
+        <button id="btn-clear" class="btn btn-danger" title="Clear input and output">Clear</button>
       </div>
       
-      <!-- Primary actions -->
-      <button id="btn-format" class="btn" title="Format JSON to be readable">
-        <span>Format</span>
-      </button>
-      
-      <button id="btn-compress" class="btn" title="Remove all whitespace to minify JSON">
-        <span>Compress</span>
-      </button>
-      
-      <button id="btn-escape" class="btn" title="Escape quotes and control characters">
-        <span>Escape</span>
-      </button>
-      
-      <button id="btn-unescape" class="btn" title="Unescape JSON string literal back to raw JSON">
-        <span>Unescape</span>
-      </button>
-      
-      <button id="btn-copy" class="btn" title="Copy raw JSON to clipboard">
-        <span>Copy</span>
-      </button>
-      
-      <button id="btn-clear" class="btn btn-danger" title="Clear all input and output">
-        <span>Clear</span>
-      </button>
+      <!-- Toolbar: MySQL Format -->
+      <div id="toolbar-mysql-format" class="toolbar-group" style="display: none;">
+        <button id="btn-mysql-format" class="btn" title="Beautify SQL query">Format SQL</button>
+        <button id="btn-mysql-copy" class="btn" title="Copy formatted SQL">Copy</button>
+        <button id="btn-mysql-clear" class="btn btn-danger" title="Clear input and output">Clear</button>
+      </div>
+
+      <!-- Toolbar: JSON Compare -->
+      <div id="toolbar-json-compare" class="toolbar-group" style="display: none;">
+        <button id="btn-json-compare" class="btn" title="Compare two JSON structures">Compare</button>
+        <button id="btn-json-compare-edit" class="btn" style="display: none;" title="Back to editing">Edit</button>
+        <button id="btn-json-compare-clear" class="btn btn-danger" title="Clear inputs and diff">Clear</button>
+      </div>
+
+      <!-- Toolbar: Text Compare -->
+      <div id="toolbar-text-compare" class="toolbar-group" style="display: none;">
+        <button id="btn-text-compare" class="btn" title="Compare two text files">Compare</button>
+        <button id="btn-text-compare-edit" class="btn" style="display: none;" title="Back to editing">Edit</button>
+        <button id="btn-text-compare-clear" class="btn btn-danger" title="Clear inputs and diff">Clear</button>
+      </div>
     </div>
   </header>
 
-  <!-- Main Grid Workspace -->
-  <main class="main-container">
-    <!-- Left side: RAW Text Editor -->
-    <section class="panel panel-left" aria-label="JSON Input Editor">
-      <div class="panel-header">
-        <span>JSON Text Editor</span>
-      </div>
-      <div class="panel-content">
-        <div class="editor-wrapper">
-          <!-- Line Numbers gutter -->
-          <div id="line-numbers" class="gutter"></div>
-          <!-- Textarea Input -->
-          <textarea 
-            id="json-textarea" 
-            class="json-textarea" 
-            placeholder="Paste your raw JSON code here..." 
-            spellcheck="false"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-          ></textarea>
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <nav class="sidebar-nav">
+        <!-- Group: Format -->
+        <div class="sidebar-group">
+          <div class="sidebar-group-title">Format</div>
+          <button class="sidebar-item active" data-tool="json-format">
+            <span class="sidebar-item-dot">•</span> JSON
+          </button>
+          <button class="sidebar-item" data-tool="mysql-format">
+            <span class="sidebar-item-dot">•</span> MySQL
+          </button>
+        </div>
+        
+        <!-- Group: Compare -->
+        <div class="sidebar-group">
+          <div class="sidebar-group-title">Compare</div>
+          <button class="sidebar-item" data-tool="json-compare">
+            <span class="sidebar-item-dot">•</span> JSON
+          </button>
+          <button class="sidebar-item" data-tool="text-compare">
+            <span class="sidebar-item-dot">•</span> Text
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="workspace">
+      
+      <!-- TOOL: JSON Formatter (Default) -->
+      <div id="tool-json-format" class="tool-view active-tool">
+        <div class="split-view">
+          <!-- Left side: JSON text area -->
+          <section class="panel panel-left" aria-label="JSON Input Editor">
+            <div class="panel-header">
+              <span>JSON Text Editor</span>
+            </div>
+            <div class="panel-content">
+              <div class="editor-wrapper">
+                <div id="line-numbers" class="gutter"></div>
+                <textarea 
+                  id="json-textarea" 
+                  class="json-textarea" 
+                  placeholder="Paste your raw JSON code here..." 
+                  spellcheck="false"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                ></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Resizer Divider -->
+          <div id="panel-resizer" class="resizer" title="Drag to resize panels"></div>
+
+          <!-- Right side: Tree Viewer -->
+          <section class="panel panel-right" aria-label="JSON Tree Viewer">
+            <div class="panel-header">
+              <span>Tree Viewer</span>
+            </div>
+            <div class="viewer-wrapper">
+              <div class="search-bar">
+                <input 
+                  type="text" 
+                  id="search-input" 
+                  class="search-input" 
+                  placeholder="Search keys or values in tree..." 
+                  autocomplete="off"
+                >
+                <span id="search-count" class="search-count"></span>
+              </div>
+              <div id="tree-container" class="tree-container"></div>
+            </div>
+          </section>
         </div>
       </div>
-    </section>
 
-    <!-- Resizer Divider -->
-    <div id="panel-resizer" class="resizer" title="Drag to resize panels"></div>
+      <!-- TOOL: MySQL Formatter -->
+      <div id="tool-mysql-format" class="tool-view" style="display: none;">
+        <div class="split-view">
+          <section class="panel panel-left" aria-label="MySQL Raw Input">
+            <div class="panel-header">
+              <span>Raw SQL Input</span>
+            </div>
+            <div class="panel-content">
+              <div class="editor-wrapper">
+                <div id="line-numbers-mysql" class="gutter"></div>
+                <textarea 
+                  id="mysql-textarea" 
+                  class="json-textarea" 
+                  placeholder="Paste your raw SQL queries here (e.g., select * from users where id = 1)..." 
+                  spellcheck="false"
+                ></textarea>
+              </div>
+            </div>
+          </section>
 
-    <!-- Right side: TREE Viewer -->
-    <section class="panel panel-right" aria-label="JSON Tree Viewer">
-      <div class="panel-header">
-        <span>Tree Viewer</span>
-      </div>
-      <div class="viewer-wrapper">
-        <!-- Tree filter search bar -->
-        <div class="search-bar">
-          <input 
-            type="text" 
-            id="search-input" 
-            class="search-input" 
-            placeholder="Search keys or values in tree..." 
-            autocomplete="off"
-          >
-          <span id="search-count" class="search-count"></span>
+          <div id="panel-resizer-mysql" class="resizer" title="Drag to resize panels"></div>
+
+          <section class="panel panel-right" aria-label="MySQL Formatted Output">
+            <div class="panel-header">
+              <span>Formatted SQL Output</span>
+            </div>
+            <div class="panel-content">
+              <div class="editor-wrapper">
+                <div id="line-numbers-mysql-out" class="gutter"></div>
+                <textarea 
+                  id="mysql-textarea-out" 
+                  class="json-textarea" 
+                  readonly 
+                  placeholder="Formatted SQL output will appear here..." 
+                  spellcheck="false"
+                ></textarea>
+              </div>
+            </div>
+          </section>
         </div>
-        <!-- Recursive Tree output container -->
-        <div id="tree-container" class="tree-container"></div>
       </div>
-    </section>
-  </main>
+
+      <!-- TOOL: JSON Compare -->
+      <div id="tool-json-compare" class="tool-view" style="display: none;">
+        <div class="split-view">
+          <section class="panel panel-left" aria-label="JSON A Original">
+            <div class="panel-header">
+              <span>JSON A (Original)</span>
+            </div>
+            <div class="panel-content">
+              <textarea 
+                id="json-a-textarea" 
+                class="json-textarea" 
+                placeholder="Paste original JSON here..." 
+                spellcheck="false"
+              ></textarea>
+              <div id="json-a-diff" class="diff-view" style="display: none;"></div>
+            </div>
+          </section>
+
+          <div id="panel-resizer-json-comp" class="resizer" title="Drag to resize panels"></div>
+
+          <section class="panel panel-right" aria-label="JSON B Modified">
+            <div class="panel-header">
+              <span>JSON B (Modified)</span>
+            </div>
+            <div class="panel-content">
+              <textarea 
+                id="json-b-textarea" 
+                class="json-textarea" 
+                placeholder="Paste modified JSON here..." 
+                spellcheck="false"
+              ></textarea>
+              <div id="json-b-diff" class="diff-view" style="display: none;"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- TOOL: Text Compare -->
+      <div id="tool-text-compare" class="tool-view" style="display: none;">
+        <div class="split-view">
+          <section class="panel panel-left" aria-label="Text A Original">
+            <div class="panel-header">
+              <span>Text A (Original)</span>
+            </div>
+            <div class="panel-content">
+              <textarea 
+                id="text-a-textarea" 
+                class="json-textarea" 
+                placeholder="Paste original text here..." 
+                spellcheck="false"
+              ></textarea>
+              <div id="text-a-diff" class="diff-view" style="display: none;"></div>
+            </div>
+          </section>
+
+          <div id="panel-resizer-text-comp" class="resizer" title="Drag to resize panels"></div>
+
+          <section class="panel panel-right" aria-label="Text B Modified">
+            <div class="panel-header">
+              <span>Text B (Modified)</span>
+            </div>
+            <div class="panel-content">
+              <textarea 
+                id="text-b-textarea" 
+                class="json-textarea" 
+                placeholder="Paste modified text here..." 
+                spellcheck="false"
+              ></textarea>
+              <div id="text-b-diff" class="diff-view" style="display: none;"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+      
+    </main>
+  </div>
 
   <!-- Error Notification Panel -->
   <div id="alert-bar" class="alert-bar" role="alert">
@@ -120,7 +276,7 @@
       <span id="status-lines">Lines: 0</span>
     </div>
     <div>
-      <span>100% Client-side • Compact Light Theme</span>
+      <span>100% Client-side • Collapsible Navigation Suite</span>
     </div>
   </footer>
 
