@@ -1,0 +1,8 @@
+# Ignore AI agents rules, plans, and instructions
+.agents/
+GEMINI.md
+requirement.md
+
+# Ignore OS metadata
+.DS_Store
+Thumbs.db

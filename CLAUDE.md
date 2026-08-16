@@ -1,14 +1,16 @@
-# Loan Management System — Agent Team
+# Web Tools
 
 ## Guiding Principle
 
-**Build Static and Simple Web App/Tool** Greenfield: in-memory only (no real database), pre-production — don't factor in data migration.
+**Build Static and Simple Web Apps/Tools.** Greenfield, in-memory only (no real database), pre-production — don't factor in data migration.
 
 ## Developer Tool Suite Constraints
-1. **Look and Feel**: คงแนวทางการออกแบบสไตล์เดิม (Compact Light Theme) ที่เรียบง่าย สะอาดตา
-2. **Compact & Space-Optimized**: เน้นความกะทัดรัด ประหยัดพื้นที่ แสดงผลได้กว้างและจุใจ เหมาะกับการใช้งานจริง
-3. **Static Web & Local Web Cache**: ทุกฟีเจอร์รันแบบ Static Web บน GitHub Pages ได้ โดยมีระบบสลับเมนูแบบ Local Web Cache (In-Memory/DOM Switching) เพื่อให้สลับหน้าได้ทันทีโดยไม่ต้องรีโหลดหน้าเว็บใหม่ และช่วยเก็บสถานะข้อมูลของแต่ละเครื่องมือไว้ระหว่างการสลับใช้งาน
+
+1. **Look and Feel**: Maintain the existing design direction (Compact Light Theme) — simple and clean.
+2. **Compact & Space-Optimized**: Prioritize compactness and space efficiency; the display should feel wide and content-rich, suited for real-world use.
+3. **Static Web & Local Web Cache**: Every feature must run as a static web app deployable on GitHub Pages, with a menu-switching system based on a Local Web Cache (in-memory/DOM switching) that allows instant page switching without a full reload, while preserving each tool's state across switches.
 
 ## Read This First, Every Time
-- Interview me relentlessly about every aspect of this **plan until we reach a shared understanding**. Walk down each branch of the design tree, resolving dependencies between decisions one by one.
 
+- **Do NOT, under any circumstances, perform a Git commit or Git push to GitHub** unless the user explicitly instructs you to do so on a case-by-case basis.
+- Interview me relentlessly about every aspect of this **plan until we reach a shared understanding**. Walk down each branch of the design tree, resolving dependencies between decisions one by one.
