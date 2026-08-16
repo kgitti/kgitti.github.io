@@ -1,1 +1,129 @@
-Test Static web site
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Viewer & Formatter</title>
+  <meta name="description" content="A compact, lightweight, offline-ready JSON Viewer and Formatter. Beautify and compress JSON instantly on client-side.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header Bar -->
+  <header>
+    <div class="logo-section">
+      <h1>
+        <span class="logo-icon">{ }</span> 
+        JSON Viewer & Formatter
+      </h1>
+    </div>
+    
+    <div class="toolbar">
+      <!-- Indentation setting selector -->
+      <div class="indent-select-container">
+        <label for="select-indent">Tab size:</label>
+        <select id="select-indent" class="indent-select">
+          <option value="2" selected>2 Spaces</option>
+          <option value="4">4 Spaces</option>
+          <option value="tab">Tabs</option>
+        </select>
+      </div>
+      
+      <!-- Primary actions -->
+      <button id="btn-format" class="btn" title="Format JSON to be readable">
+        <span>Format</span>
+      </button>
+      
+      <button id="btn-compress" class="btn" title="Remove all whitespace to minify JSON">
+        <span>Compress</span>
+      </button>
+      
+      <button id="btn-escape" class="btn" title="Escape quotes and control characters">
+        <span>Escape</span>
+      </button>
+      
+      <button id="btn-unescape" class="btn" title="Unescape JSON string literal back to raw JSON">
+        <span>Unescape</span>
+      </button>
+      
+      <button id="btn-copy" class="btn" title="Copy raw JSON to clipboard">
+        <span>Copy</span>
+      </button>
+      
+      <button id="btn-clear" class="btn btn-danger" title="Clear all input and output">
+        <span>Clear</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Workspace -->
+  <main class="main-container">
+    <!-- Left side: RAW Text Editor -->
+    <section class="panel panel-left" aria-label="JSON Input Editor">
+      <div class="panel-header">
+        <span>JSON Text Editor</span>
+      </div>
+      <div class="panel-content">
+        <div class="editor-wrapper">
+          <!-- Line Numbers gutter -->
+          <div id="line-numbers" class="gutter"></div>
+          <!-- Textarea Input -->
+          <textarea 
+            id="json-textarea" 
+            class="json-textarea" 
+            placeholder="Paste your raw JSON code here..." 
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+          ></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resizer Divider -->
+    <div id="panel-resizer" class="resizer" title="Drag to resize panels"></div>
+
+    <!-- Right side: TREE Viewer -->
+    <section class="panel panel-right" aria-label="JSON Tree Viewer">
+      <div class="panel-header">
+        <span>Tree Viewer</span>
+      </div>
+      <div class="viewer-wrapper">
+        <!-- Tree filter search bar -->
+        <div class="search-bar">
+          <input 
+            type="text" 
+            id="search-input" 
+            class="search-input" 
+            placeholder="Search keys or values in tree..." 
+            autocomplete="off"
+          >
+          <span id="search-count" class="search-count"></span>
+        </div>
+        <!-- Recursive Tree output container -->
+        <div id="tree-container" class="tree-container"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Error Notification Panel -->
+  <div id="alert-bar" class="alert-bar" role="alert">
+    <span class="alert-icon">⚠</span>
+    <span id="alert-msg" class="alert-msg">Syntax Error: Failed to parse JSON.</span>
+  </div>
+
+  <!-- Status Bar Footer -->
+  <footer>
+    <div class="footer-info">
+      <span id="status-size">Size: 0 B</span>
+      <span id="status-lines">Lines: 0</span>
+    </div>
+    <div>
+      <span>100% Client-side • Compact Light Theme</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
