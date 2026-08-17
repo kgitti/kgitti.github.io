@@ -19,6 +19,15 @@
         <span id="header-title">JSON Viewer & Formatter</span>
       </h1>
     </div>
+
+    <!-- Center Dashboard button -->
+    <div class="header-center">
+      <button id="btn-dashboard-toggle" class="btn-dashboard-rect" title="Show Momentum Dashboard">
+        <svg class="chevron-icon-svg" viewBox="0 0 48 24" width="24" height="12">
+          <path d="M 10,8 L 24,16 L 38,8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
     
     <!-- Contextual Toolbars -->
     <div class="toolbar">
@@ -406,6 +415,23 @@
       <span>100% Client-side • Collapsible Navigation Suite</span>
     </div>
   </footer>
+
+  <!-- Dashboard Overlay (Momentum style) -->
+  <div id="dashboard-overlay" class="dashboard-overlay">
+    <div class="dashboard-top"></div>
+    <div class="dashboard-center">
+      <div id="dashboard-clock" class="dashboard-clock">00:00</div>
+      <div id="dashboard-greeting" class="dashboard-greeting">Hello, Developer.</div>
+      <div id="dashboard-quote" class="dashboard-quote">"Focus on being productive, not busy."</div>
+    </div>
+    <div class="dashboard-bottom">
+      <button id="btn-dashboard-close" class="btn-dashboard-rect" title="Close Dashboard">
+        <svg class="chevron-icon-svg" viewBox="0 0 48 24" width="24" height="12">
+          <path d="M 10,16 L 24,8 L 38,16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="js/app.js"></script>

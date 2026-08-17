@@ -57,3 +57,6 @@ We wired complete client-side event bindings in `js/app.js` to let you test this
 4. **Interactive Tasks**:
    * Select the `Sprint Checklist` note.
    * Clicking checkcard tasks on the right dynamically edits the raw Markdown text (`- [ ]` / `- [x]`) inside the textarea on the left.
+5. **Momentum Dashboard Overlay**:
+   * Click the centered rectangular frosted-glass button (containing an obtuse chevron pointing down) at the top-center header to slide down a peaceful fullscreen overlay.
+   * Displays a live digital clock, hourly greeting, and close actions (bottom rectangular frosted-glass button with an obtuse chevron pointing up / `Escape` key).

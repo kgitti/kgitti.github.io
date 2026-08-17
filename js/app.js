@@ -2062,6 +2062,69 @@ document.addEventListener('DOMContentLoaded', () => {
   // Trigger local database load
   loadNotesDB();
 
+  // --- Momentum Dashboard Overlay Logic ---
+  const btnDashboardToggle = document.getElementById('btn-dashboard-toggle');
+  const dashboardOverlay = document.getElementById('dashboard-overlay');
+  const btnDashboardClose = document.getElementById('btn-dashboard-close');
+  const dashboardClock = document.getElementById('dashboard-clock');
+  const dashboardGreeting = document.getElementById('dashboard-greeting');
+
+  function updateDashboardClock() {
+    const now = new Date();
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    
+    hours = hours < 10 ? '0' + hours : hours;
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    
+    if (dashboardClock) {
+      dashboardClock.textContent = `${hours}:${minutes}`;
+    }
+    
+    updateDashboardGreeting(now.getHours());
+  }
+
+  function updateDashboardGreeting(hours) {
+    if (!dashboardGreeting) return;
+    
+    let greeting = 'Hello';
+    if (hours >= 5 && hours < 12) {
+      greeting = 'Good morning';
+    } else if (hours >= 12 && hours < 17) {
+      greeting = 'Good afternoon';
+    } else if (hours >= 17 && hours < 22) {
+      greeting = 'Good evening';
+    } else {
+      greeting = 'Good night';
+    }
+    
+    dashboardGreeting.textContent = `${greeting}, Developer.`;
+  }
+
+  if (btnDashboardToggle && dashboardOverlay) {
+    btnDashboardToggle.addEventListener('click', () => {
+      updateDashboardClock();
+      dashboardOverlay.classList.add('active');
+    });
+  }
+
+  if (btnDashboardClose && dashboardOverlay) {
+    btnDashboardClose.addEventListener('click', () => {
+      dashboardOverlay.classList.remove('active');
+    });
+  }
+
+  // Close dashboard on Escape key press
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dashboardOverlay && dashboardOverlay.classList.contains('active')) {
+      dashboardOverlay.classList.remove('active');
+    }
+  });
+
+  // Start clock timer immediately
+  updateDashboardClock();
+  setInterval(updateDashboardClock, 1000);
+
   // --- Drag and drop loader setup ---
   // Bind drag-and-drop to all editor input textareas
   setupDragAndDrop(textareaJson);
