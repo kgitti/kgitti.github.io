@@ -2069,24 +2069,428 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardClock = document.getElementById('dashboard-clock');
   const dashboardGreeting = document.getElementById('dashboard-greeting');
 
+  // --- Focus Timer (Pomodoro) state ---
+  let focusTimeLeft = 25 * 60;
+  let focusDuration = 25 * 60;
+  let focusTimerId = null;
+  let focusState = 'stopped'; // 'stopped', 'running', 'paused'
+  let currentFocusMode = 'pomodoro'; // 'pomodoro', 'short', 'long'
+
+  // --- Audio Context and Ambient Soundscapes setup ---
+  let audioCtx = null;
+  let brownNoiseNode = null;
+  let brownGainNode = null;
+
+  const ambientAudios = {
+    rain: new Audio('sounds/rain.mp3'),
+    wind: new Audio('sounds/wind.mp3'),
+    forest: new Audio('sounds/forest.mp3'),
+    campfire: new Audio('sounds/campfire.mp3'),
+    river: new Audio('sounds/river.mp3')
+  };
+
+  // Configure loop property for loops
+  for (let key in ambientAudios) {
+    ambientAudios[key].loop = true;
+    ambientAudios[key].volume = 0;
+  }
+
+  function initAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function startBrownNoise() {
+    initAudioContext();
+    if (!brownNoiseNode) {
+      const sampleRate = audioCtx.sampleRate;
+      const bufferSize = 2 * sampleRate;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let lastOut = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = output[i];
+        output[i] *= 3.5; // compensation gain
+      }
+      brownNoiseNode = audioCtx.createBufferSource();
+      brownNoiseNode.buffer = noiseBuffer;
+      brownNoiseNode.loop = true;
+
+      brownGainNode = audioCtx.createGain();
+      brownGainNode.gain.value = 0;
+
+      brownNoiseNode.connect(brownGainNode);
+      brownGainNode.connect(audioCtx.destination);
+      brownNoiseNode.start(0);
+    }
+  }
+
+  function playBowlChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const osc3 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc1.frequency.value = 180;
+      osc2.frequency.value = 282; // non-integer harmonic
+      osc3.frequency.value = 398;
+
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      osc3.type = 'sine';
+
+      const osc1Gain = ctx.createGain();
+      const osc2Gain = ctx.createGain();
+      const osc3Gain = ctx.createGain();
+
+      osc1Gain.gain.setValueAtTime(0.5, now);
+      osc2Gain.gain.setValueAtTime(0.3, now);
+      osc3Gain.gain.setValueAtTime(0.15, now);
+
+      osc1.connect(osc1Gain);
+      osc2.connect(osc2Gain);
+      osc3.connect(osc3Gain);
+
+      osc1Gain.connect(gainNode);
+      osc2Gain.connect(gainNode);
+      osc3Gain.connect(gainNode);
+
+      gainNode.connect(ctx.destination);
+
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.8, now + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 5.0);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc3.start(now);
+
+      osc1.stop(now + 5.0);
+      osc2.stop(now + 5.0);
+      osc3.stop(now + 5.0);
+    } catch (err) {
+      console.warn("Audio chime play failed:", err);
+    }
+  }
+
+  let lastAmbientVolumes = { rain: 0, wind: 0, forest: 0, campfire: 0, river: 0, brown: 0 };
+  let isAmbientPlaying = false;
+
+  function updateAmbientPlayPauseButton(state) {
+    const btnPause = document.getElementById('btn-soundscapes-pause');
+    const textPause = document.getElementById('text-soundscapes-pause');
+    const iconPause = document.getElementById('icon-soundscapes-pause');
+
+    if (!btnPause) return;
+
+    if (state === 'playing') {
+      btnPause.title = "Pause Ambient Sounds";
+      if (textPause) textPause.textContent = "Pause";
+      if (iconPause) {
+        iconPause.innerHTML = `
+          <rect x="6" y="4" width="4" height="16"/>
+          <rect x="14" y="4" width="4" height="16"/>
+        `;
+      }
+    } else {
+      btnPause.title = "Play Ambient Sounds";
+      if (textPause) textPause.textContent = "Play";
+      if (iconPause) {
+        iconPause.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+      }
+    }
+  }
+
+  function stopAllAmbientSounds(saveState = false) {
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+    
+    if (saveState) {
+      soundIds.forEach(id => {
+        const slider = document.getElementById(`volume-${id}`);
+        lastAmbientVolumes[id] = slider ? parseInt(slider.value, 10) : 0;
+      });
+    }
+
+    for (const key in ambientAudios) {
+      const audio = ambientAudios[key];
+      if (audio) {
+        if (!audio.paused) {
+          audio.pause();
+        }
+      }
+    }
+    if (brownGainNode) {
+      brownGainNode.gain.value = 0;
+    }
+
+    isAmbientPlaying = false;
+    updateAmbientPlayPauseButton('paused');
+  }
+
+  function playAllAmbientSounds() {
+    initAudioContext();
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+
+    // Check if there are any sliders currently set above 0 in the UI
+    let hasAnySliderValue = soundIds.some(id => {
+      const slider = document.getElementById(`volume-${id}`);
+      return slider && parseInt(slider.value, 10) > 0;
+    });
+
+    // If all sliders are currently 0, restore from lastAmbientVolumes or default to rain: 25
+    if (!hasAnySliderValue) {
+      const hasSavedVolumes = soundIds.some(id => lastAmbientVolumes[id] > 0);
+      if (!hasSavedVolumes) {
+        lastAmbientVolumes.rain = 25; // Default: soft rain
+      }
+      // Populate slider values from saved configuration
+      soundIds.forEach(id => {
+        const slider = document.getElementById(`volume-${id}`);
+        if (slider) {
+          slider.value = lastAmbientVolumes[id];
+        }
+      });
+    }
+
+    // Now play matching the slider values
+    soundIds.forEach(id => {
+      const slider = document.getElementById(`volume-${id}`);
+      const vol = slider ? parseInt(slider.value, 10) : 0;
+      const volumePercent = vol / 100;
+
+      if (id === 'brown') {
+        if (vol > 0) {
+          startBrownNoise();
+          if (brownGainNode) {
+            brownGainNode.gain.value = volumePercent;
+          }
+        }
+      } else {
+        const audio = ambientAudios[id];
+        if (audio) {
+          audio.volume = volumePercent;
+          if (vol > 0) {
+            if (audio.paused) {
+              audio.play().catch(e => console.log("Audio playback failed to start:", e));
+            }
+          } else {
+            if (!audio.paused) {
+              audio.pause();
+            }
+          }
+        }
+      }
+    });
+
+    isAmbientPlaying = true;
+    updateAmbientPlayPauseButton('playing');
+  }
+
+  function isAnyAmbientSoundActive() {
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+    return soundIds.some(id => {
+      const slider = document.getElementById(`volume-${id}`);
+      return slider && parseInt(slider.value, 10) > 0;
+    });
+  }
+
+  function handleVolumeChange(soundKey, volumeValue) {
+    initAudioContext();
+    const volumePercent = volumeValue / 100;
+
+    if (soundKey === 'brown') {
+      startBrownNoise();
+      if (brownGainNode) {
+        brownGainNode.gain.value = volumePercent;
+      }
+    } else {
+      const audio = ambientAudios[soundKey];
+      if (audio) {
+        audio.volume = volumePercent;
+        if (volumePercent > 0) {
+          if (audio.paused) {
+            audio.play().catch(e => console.log("Audio playback failed to start:", e));
+          }
+        } else {
+          if (!audio.paused) {
+            audio.pause();
+          }
+        }
+      }
+    }
+
+    if (isAnyAmbientSoundActive()) {
+      isAmbientPlaying = true;
+      updateAmbientPlayPauseButton('playing');
+    } else {
+      isAmbientPlaying = false;
+      updateAmbientPlayPauseButton('paused');
+    }
+  }
+
+  function initRulerTimer() {
+    const ticksContainer = document.getElementById('ruler-ticks');
+    const rangeInput = document.getElementById('focus-timer-range');
+    const valDisplay = document.getElementById('ruler-value');
+
+    if (ticksContainer) {
+      let ticksHtml = '';
+      for (let i = 1; i <= 90; i++) {
+        const isMajor = (i % 5 === 0);
+        ticksHtml += `<span class="ruler-tick ${isMajor ? 'major' : ''}"></span>`;
+      }
+      ticksContainer.innerHTML = ticksHtml;
+    }
+
+    if (rangeInput && valDisplay) {
+      const startMins = parseInt(rangeInput.value, 10);
+      focusDuration = startMins * 60;
+      focusTimeLeft = focusDuration;
+      valDisplay.textContent = startMins;
+
+      rangeInput.addEventListener('input', (e) => {
+        const mins = parseInt(e.target.value, 10);
+        valDisplay.textContent = mins;
+
+        if (focusState === 'stopped') {
+          focusDuration = mins * 60;
+          focusTimeLeft = focusDuration;
+        }
+      });
+    }
+  }
+
+  function updateTimerDisplay() {
+    if (!dashboardClock) return;
+
+    const mins = Math.floor(focusTimeLeft / 60);
+    const secs = focusTimeLeft % 60;
+    dashboardClock.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    const progressPercent = ((focusDuration - focusTimeLeft) / focusDuration) * 100;
+    const progressBar = document.getElementById('focus-timer-bar');
+    if (progressBar) {
+      progressBar.style.width = `${progressPercent}%`;
+    }
+  }
+
+  function toggleFocusTimer() {
+    const btnToggle = document.getElementById('btn-focus-toggle');
+    const btnStop = document.getElementById('btn-focus-stop');
+    const container = document.getElementById('focus-timer-container');
+    const textToggle = document.getElementById('text-focus-toggle');
+    const iconToggle = document.getElementById('icon-focus-toggle');
+    const rulerValDisplay = document.getElementById('focus-ruler-value-display');
+    const rulerSlider = document.getElementById('focus-ruler-slider-container');
+
+    if (focusState === 'stopped' || focusState === 'paused') {
+      focusState = 'running';
+      if (textToggle) textToggle.textContent = 'Pause';
+      if (iconToggle) {
+        iconToggle.innerHTML = `
+          <rect x="6" y="4" width="4" height="16"/>
+          <rect x="14" y="4" width="4" height="16"/>
+        `;
+      }
+      if (btnStop) btnStop.style.display = 'inline-flex';
+      if (container) container.classList.add('running');
+      if (rulerValDisplay) rulerValDisplay.style.display = 'none';
+      if (rulerSlider) rulerSlider.style.display = 'none';
+
+      focusTimerId = setInterval(() => {
+        if (focusTimeLeft > 0) {
+          focusTimeLeft--;
+          updateTimerDisplay();
+        } else {
+          if (isAnyAmbientSoundActive()) {
+            stopAllAmbientSounds(true); // Save current slider configuration!
+          }
+          stopFocusTimer();
+
+          let finishMsg = "Time's up! Focus session complete.";
+          alert(finishMsg);
+        }
+      }, 1000);
+
+      updateTimerDisplay();
+    } else if (focusState === 'running') {
+      focusState = 'paused';
+      if (textToggle) textToggle.textContent = 'Start';
+      if (iconToggle) {
+        iconToggle.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+      }
+      clearInterval(focusTimerId);
+    }
+  }
+
+  function stopFocusTimer() {
+    focusState = 'stopped';
+    clearInterval(focusTimerId);
+    focusTimerId = null;
+
+    const btnToggle = document.getElementById('btn-focus-toggle');
+    const btnStop = document.getElementById('btn-focus-stop');
+    const container = document.getElementById('focus-timer-container');
+    const textToggle = document.getElementById('text-focus-toggle');
+    const iconToggle = document.getElementById('icon-focus-toggle');
+    const rulerValDisplay = document.getElementById('focus-ruler-value-display');
+    const rulerSlider = document.getElementById('focus-ruler-slider-container');
+
+    if (textToggle) textToggle.textContent = 'Start';
+    if (iconToggle) {
+      iconToggle.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+    }
+    if (btnStop) btnStop.style.display = 'none';
+    if (container) container.classList.remove('running');
+    if (rulerValDisplay) rulerValDisplay.style.display = 'flex';
+    if (rulerSlider) rulerSlider.style.display = 'flex';
+
+    const progressBar = document.getElementById('focus-timer-bar');
+    if (progressBar) {
+      progressBar.style.width = '0%';
+    }
+
+    const rangeInput = document.getElementById('focus-timer-range');
+    if (rangeInput) {
+      focusDuration = parseInt(rangeInput.value, 10) * 60;
+    } else {
+      focusDuration = 25 * 60;
+    }
+    focusTimeLeft = focusDuration;
+    updateDashboardClock();
+  }
+
   function updateDashboardClock() {
+    if (focusState === 'running' || focusState === 'paused') {
+      return;
+    }
     const now = new Date();
     let hours = now.getHours();
     let minutes = now.getMinutes();
-    
+
     hours = hours < 10 ? '0' + hours : hours;
     minutes = minutes < 10 ? '0' + minutes : minutes;
-    
+
     if (dashboardClock) {
       dashboardClock.textContent = `${hours}:${minutes}`;
     }
-    
+
     updateDashboardGreeting(now.getHours());
   }
 
   function updateDashboardGreeting(hours) {
     if (!dashboardGreeting) return;
-    
+
     let greeting = 'Hello';
     if (hours >= 5 && hours < 12) {
       greeting = 'Good morning';
@@ -2097,7 +2501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       greeting = 'Good night';
     }
-    
+
     dashboardGreeting.textContent = `${greeting}, Developer.`;
   }
 
@@ -2127,6 +2531,57 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && dashboardWrapper && dashboardWrapper.classList.contains('active')) {
       dashboardWrapper.classList.remove('active');
+    }
+  });
+
+  // --- Focus Timer Event Listeners ---
+  const btnFocusToggle = document.getElementById('btn-focus-toggle');
+  const btnFocusStop = document.getElementById('btn-focus-stop');
+
+  if (btnFocusToggle) btnFocusToggle.addEventListener('click', toggleFocusTimer);
+  if (btnFocusStop) btnFocusStop.addEventListener('click', stopFocusTimer);
+
+  // Initialize custom ruler dial
+  initRulerTimer();
+
+  // --- Soundscapes Event Listeners ---
+  const btnSoundscapesToggle = document.getElementById('btn-soundscapes-toggle');
+  const soundscapesWrapper = document.querySelector('.soundscapes-wrapper');
+
+  if (btnSoundscapesToggle && soundscapesWrapper) {
+    btnSoundscapesToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      soundscapesWrapper.classList.toggle('active');
+    });
+
+    const btnSoundscapesPause = document.getElementById('btn-soundscapes-pause');
+    if (btnSoundscapesPause) {
+      btnSoundscapesPause.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isAmbientPlaying) {
+          stopAllAmbientSounds(true); // Save current configuration and pause
+        } else {
+          playAllAmbientSounds(); // Resume previous configuration
+        }
+      });
+    }
+
+    // Close soundscape drawer when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!soundscapesWrapper.contains(e.target)) {
+        soundscapesWrapper.classList.remove('active');
+      }
+    });
+  }
+
+  // Bind volume range sliders
+  const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+  soundIds.forEach(id => {
+    const slider = document.getElementById(`volume-${id}`);
+    if (slider) {
+      slider.addEventListener('input', (e) => {
+        handleVolumeChange(id, parseInt(e.target.value, 10));
+      });
     }
   });
 
