@@ -416,20 +416,60 @@
     </div>
   </footer>
 
-  <!-- Dashboard Overlay (Momentum style) -->
-  <div id="dashboard-overlay" class="dashboard-overlay">
-    <div class="dashboard-top"></div>
-    <div class="dashboard-center">
-      <div id="dashboard-clock" class="dashboard-clock">00:00</div>
-      <div id="dashboard-greeting" class="dashboard-greeting">Hello, Developer.</div>
-      <div id="dashboard-quote" class="dashboard-quote">"Focus on being productive, not busy."</div>
-    </div>
-    <div class="dashboard-bottom">
-      <button id="btn-dashboard-close" class="btn-dashboard-rect" title="Close Dashboard">
-        <svg class="chevron-icon-svg" viewBox="0 0 48 24" width="24" height="12">
-          <path d="M 10,16 L 24,8 L 38,16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
+  <!-- Dashboard Wrapper (Full screen backdrop to intercept clicks outside) -->
+  <div id="dashboard-wrapper" class="dashboard-wrapper">
+    <!-- Dashboard Overlay (Momentum style) -->
+    <div id="dashboard-overlay" class="dashboard-overlay">
+      <div class="dashboard-top">
+        <!-- Weather Glassmorphism Widget -->
+        <div class="weather-widget" id="weather-widget">
+          <div class="weather-widget-header">
+            <div class="weather-info-summary">
+              <span class="weather-status-text" id="weather-status-text">Fetching weather conditions...</span>
+            </div>
+            <div class="weather-day-navigation">
+              <button id="btn-weather-prev-day" class="btn-weather-nav" title="Previous Day">◀</button>
+              <span class="weather-current-day-label" id="weather-current-day-label">Loading...</span>
+              <button id="btn-weather-next-day" class="btn-weather-nav" title="Next Day">▶</button>
+            </div>
+          </div>
+          
+          <div class="weather-hourly-container" id="weather-hourly-container">
+            <div class="weather-loading-state">Loading hourly forecast...</div>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-center">
+        <div id="dashboard-clock" class="dashboard-clock">00:00</div>
+        <div id="dashboard-greeting" class="dashboard-greeting">Hello, Developer.</div>
+        <div id="dashboard-quote" class="dashboard-quote">"Focus on being productive, not busy."</div>
+      </div>
+      <div class="dashboard-bottom">
+        <button id="btn-dashboard-close" class="btn-dashboard-rect" title="Close Dashboard">
+          <svg class="chevron-icon-svg" viewBox="0 0 48 24" width="24" height="12">
+            <path d="M 10,16 L 24,8 L 38,16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <!-- Compact Full-Year Calendar Popup -->
+      <div id="calendar-modal" class="calendar-modal">
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <div class="calendar-year-selector">
+              <button id="btn-cal-prev-year" class="btn-cal-year-nav">◀</button>
+              <span id="calendar-year-label" class="calendar-year-label">2026</span>
+              <button id="btn-cal-next-year" class="btn-cal-year-nav">▶</button>
+            </div>
+          </div>
+          <div id="calendar-months-grid" class="calendar-months-grid">
+            <!-- 12 months grids generated dynamically -->
+          </div>
+          <div class="calendar-footer">
+            <div class="calendar-legend-item"><span class="legend-dot today-dot"></span> Today</div>
+            <div class="calendar-legend-item"><span class="legend-dot selected-dot"></span> Selected Forecast</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

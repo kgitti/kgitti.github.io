@@ -2064,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Momentum Dashboard Overlay Logic ---
   const btnDashboardToggle = document.getElementById('btn-dashboard-toggle');
-  const dashboardOverlay = document.getElementById('dashboard-overlay');
+  const dashboardWrapper = document.getElementById('dashboard-wrapper');
   const btnDashboardClose = document.getElementById('btn-dashboard-close');
   const dashboardClock = document.getElementById('dashboard-clock');
   const dashboardGreeting = document.getElementById('dashboard-greeting');
@@ -2101,29 +2101,514 @@ document.addEventListener('DOMContentLoaded', () => {
     dashboardGreeting.textContent = `${greeting}, Developer.`;
   }
 
-  if (btnDashboardToggle && dashboardOverlay) {
+  if (btnDashboardToggle && dashboardWrapper) {
     btnDashboardToggle.addEventListener('click', () => {
       updateDashboardClock();
-      dashboardOverlay.classList.add('active');
+      dashboardWrapper.classList.add('active');
     });
   }
 
-  if (btnDashboardClose && dashboardOverlay) {
+  if (btnDashboardClose && dashboardWrapper) {
     btnDashboardClose.addEventListener('click', () => {
-      dashboardOverlay.classList.remove('active');
+      dashboardWrapper.classList.remove('active');
+    });
+  }
+
+  // Close dashboard on click outside (clicks on the transparent wrapper margins)
+  if (dashboardWrapper) {
+    dashboardWrapper.addEventListener('click', (e) => {
+      if (e.target === dashboardWrapper) {
+        dashboardWrapper.classList.remove('active');
+      }
     });
   }
 
   // Close dashboard on Escape key press
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && dashboardOverlay && dashboardOverlay.classList.contains('active')) {
-      dashboardOverlay.classList.remove('active');
+    if (e.key === 'Escape' && dashboardWrapper && dashboardWrapper.classList.contains('active')) {
+      dashboardWrapper.classList.remove('active');
     }
   });
 
   // Start clock timer immediately
   updateDashboardClock();
   setInterval(updateDashboardClock, 1000);
+
+  // --- Weather Forecast Dashboard Logic ---
+  let activeDayIndex = 0;
+  let weatherDays = [];
+  let weatherDataGrouped = {};
+  let currentWeatherCode = 0;
+
+  // WMO weather themes
+  const weatherThemes = {
+    0: { class: 'weather-sunny', bg: 'rgba(251, 146, 60, 0.12)', border: 'rgba(251, 146, 60, 0.25)' },
+    1: { class: 'weather-sunny', bg: 'rgba(251, 146, 60, 0.12)', border: 'rgba(251, 146, 60, 0.25)' },
+    2: { class: 'weather-cloudy', bg: 'rgba(147, 197, 253, 0.12)', border: 'rgba(147, 197, 253, 0.25)' },
+    3: { class: 'weather-cloudy', bg: 'rgba(148, 163, 184, 0.12)', border: 'rgba(148, 163, 184, 0.25)' },
+    45: { class: 'weather-foggy', bg: 'rgba(203, 213, 225, 0.12)', border: 'rgba(203, 213, 225, 0.25)' },
+    48: { class: 'weather-foggy', bg: 'rgba(203, 213, 225, 0.12)', border: 'rgba(203, 213, 225, 0.25)' },
+    51: { class: 'weather-rainy', bg: 'rgba(71, 85, 105, 0.20)', border: 'rgba(148, 163, 184, 0.3)' },
+    53: { class: 'weather-rainy', bg: 'rgba(71, 85, 105, 0.20)', border: 'rgba(148, 163, 184, 0.3)' },
+    55: { class: 'weather-rainy', bg: 'rgba(71, 85, 105, 0.20)', border: 'rgba(148, 163, 184, 0.3)' },
+    61: { class: 'weather-rainy', bg: 'rgba(51, 65, 85, 0.22)', border: 'rgba(100, 116, 139, 0.3)' },
+    63: { class: 'weather-rainy', bg: 'rgba(51, 65, 85, 0.22)', border: 'rgba(100, 116, 139, 0.3)' },
+    65: { class: 'weather-rainy', bg: 'rgba(30, 41, 59, 0.25)', border: 'rgba(71, 85, 105, 0.35)' },
+    71: { class: 'weather-snowy', bg: 'rgba(241, 245, 249, 0.18)', border: 'rgba(255, 255, 255, 0.35)' },
+    73: { class: 'weather-snowy', bg: 'rgba(241, 245, 249, 0.18)', border: 'rgba(255, 255, 255, 0.35)' },
+    75: { class: 'weather-snowy', bg: 'rgba(241, 245, 249, 0.18)', border: 'rgba(255, 255, 255, 0.35)' },
+    80: { class: 'weather-rainy', bg: 'rgba(51, 65, 85, 0.22)', border: 'rgba(100, 116, 139, 0.3)' },
+    81: { class: 'weather-rainy', bg: 'rgba(51, 65, 85, 0.22)', border: 'rgba(100, 116, 139, 0.3)' },
+    82: { class: 'weather-rainy', bg: 'rgba(30, 41, 59, 0.25)', border: 'rgba(71, 85, 105, 0.35)' },
+    95: { class: 'weather-stormy', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(129, 140, 248, 0.3)' },
+    96: { class: 'weather-stormy', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(129, 140, 248, 0.3)' },
+    99: { class: 'weather-stormy', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(129, 140, 248, 0.3)' }
+  };
+
+  const weatherIconsOutline = {
+    'sunny': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
+    'cloudy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.05-1.22.14A6 6 0 0 0 3.5 13 3.5 3.5 0 0 0 7 16.5H17.5z"/></svg>`,
+    'rainy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/><path d="M8 19v3M12 19v3M16 19v3"/></svg>`,
+    'stormy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 8.58"/><path d="M13 18l-3 4h4l-3 4"/></svg>`,
+    'snowy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5L7 19M5 5l14 14"/><circle cx="12" cy="12" r="1" fill="#fff"/></svg>`,
+    'foggy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M2 10h20M5 14h14M3 18h18"/></svg>`
+  };
+
+  const weatherIconsSolid = {
+    'sunny': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="#fbbf24" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
+    'cloudy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.05-1.22.14A6 6 0 0 0 3.5 13 3.5 3.5 0 0 0 7 16.5H17.5z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    'rainy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.05-1.22.14A6 6 0 0 0 3.5 13 3.5 3.5 0 0 0 7 16.5H17.5z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 20v2M12 20v2M16 20v2" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/></svg>`,
+    'stormy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.05-1.22.14A6 6 0 0 0 3.5 13 3.5 3.5 0 0 0 7 16.5H17.5z" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 18l-3 4h4l-3 4" fill="#fbbf24" stroke="#d97706" stroke-width="1" stroke-linejoin="round"/></svg>`,
+    'snowy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.05-1.22.14A6 6 0 0 0 3.5 13 3.5 3.5 0 0 0 7 16.5H17.5z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8" cy="21" r="1.2" fill="#93c5fd"/><circle cx="12" cy="21" r="1.2" fill="#93c5fd"/><circle cx="16" cy="21" r="1.2" fill="#93c5fd"/></svg>`,
+    'foggy': `<svg class="weather-icon-svg" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16M2 12h20M5 16h14M8 20h8"/></svg>`
+  };
+
+  function getWeatherIcon(code, style = 'outline') {
+    const list = style === 'solid' ? weatherIconsSolid : weatherIconsOutline;
+    if (code === 0 || code === 1) return list.sunny;
+    if (code === 2 || code === 3) return list.cloudy;
+    if (code === 45 || code === 48) return list.foggy;
+    if (code >= 51 && code <= 65) return list.rainy;
+    if (code >= 71 && code <= 75) return list.snowy;
+    if (code >= 80 && code <= 82) return list.rainy;
+    if (code >= 95 && code <= 99) return list.stormy;
+    return list.sunny;
+  }
+
+  function getWeatherLabel(code) {
+    if (code === 0) return 'Sunny';
+    if (code === 1) return 'Mainly Clear';
+    if (code === 2) return 'Partly Cloudy';
+    if (code === 3) return 'Overcast';
+    if (code === 45 || code === 48) return 'Foggy';
+    if (code >= 51 && code <= 55) return 'Drizzle';
+    if (code >= 61 && code <= 65) return 'Rainy';
+    if (code >= 71 && code <= 75) return 'Snowy';
+    if (code >= 80 && code <= 82) return 'Rain Showers';
+    if (code >= 95 && code <= 99) return 'Thunderstorms';
+    return 'Clear';
+  }
+
+  function formatHourLabel(hourStr) {
+    const hourInt = parseInt(hourStr.split(':')[0], 10);
+    if (hourInt === 0) return '12 AM';
+    if (hourInt === 12) return '12 PM';
+    if (hourInt < 12) return `${hourInt} AM`;
+    return `${hourInt - 12} PM`;
+  }
+
+  function renderActiveDayForecast() {
+    const container = document.getElementById('weather-hourly-container');
+    const dayLabel = document.getElementById('weather-current-day-label');
+    const statusText = document.getElementById('weather-status-text');
+    const widget = document.getElementById('weather-widget');
+    
+    if (!container || !dayLabel || !statusText || !widget || weatherDays.length === 0) return;
+    
+    const dateStr = weatherDays[activeDayIndex];
+    const dayHours = weatherDataGrouped[dateStr];
+    if (!dayHours) return;
+
+    const dateObj = new Date(dateStr);
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    let label = '';
+    if (activeDayIndex === 0) {
+      label = `Today, ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}`;
+    } else if (activeDayIndex === 1) {
+      label = `Tomorrow, ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}`;
+    } else {
+      label = `${dayNames[dateObj.getDay()]}, ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}`;
+    }
+    dayLabel.textContent = label;
+
+    let dayCode = currentWeatherCode;
+    if (activeDayIndex > 0 && dayHours.length > 12) {
+      dayCode = dayHours[12].code;
+    }
+    
+    const theme = weatherThemes[dayCode] || weatherThemes[0];
+    widget.style.setProperty('--weather-bg-color', theme.bg);
+    widget.style.setProperty('--weather-border-color', theme.border);
+    
+    const maxTemp = Math.max(...dayHours.map(h => h.temp));
+    const minTemp = Math.min(...dayHours.map(h => h.temp));
+    const weatherLabel = getWeatherLabel(dayCode);
+    
+    if (activeDayIndex === 0) {
+      statusText.textContent = `${weatherLabel} conditions today. Temperature ranging from ${Math.round(minTemp)}°C to ${Math.round(maxTemp)}°C.`;
+    } else {
+      statusText.textContent = `${weatherLabel} conditions forecast. Temperature ranging from ${Math.round(minTemp)}°C to ${Math.round(maxTemp)}°C.`;
+    }
+
+    let html = '';
+    const currentHourInt = new Date().getHours();
+    
+    dayHours.forEach(h => {
+      const hInt = parseInt(h.hour.split(':')[0], 10);
+      let timeText = formatHourLabel(h.hour);
+      let isCurrent = false;
+      
+      if (activeDayIndex === 0 && hInt === currentHourInt) {
+        timeText = 'Now';
+        isCurrent = true;
+      }
+      
+      html += `
+        <div class="weather-hourly-item ${isCurrent ? 'current-hour' : ''}">
+          <span class="weather-hour-time">${timeText}</span>
+          <span class="weather-hour-icon">${getWeatherIcon(h.code, 'outline')}</span>
+          <span class="weather-hour-temp">${Math.round(h.temp)}°</span>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+
+    if (activeDayIndex === 0) {
+      const activeEl = container.querySelector('.current-hour');
+      if (activeEl) {
+        container.scrollLeft = activeEl.offsetLeft - (container.clientWidth / 2) + (activeEl.clientWidth / 2);
+      } else {
+        container.scrollLeft = 0;
+      }
+    } else {
+      container.scrollLeft = 0;
+    }
+  }
+
+  async function loadWeatherForecast() {
+    const CACHE_DATA_KEY = 'weather_forecast_data';
+    const CACHE_TIME_KEY = 'weather_forecast_timestamp';
+    const ONE_HOUR = 60 * 60 * 1000;
+    
+    const now = Date.now();
+    const cachedData = localStorage.getItem(CACHE_DATA_KEY);
+    const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+    
+    let weatherData = null;
+    
+    if (cachedData && cachedTime && (now - parseInt(cachedTime, 10) < ONE_HOUR)) {
+      try {
+        weatherData = JSON.parse(cachedData);
+      } catch (e) {
+        console.error("Failed to parse cached weather:", e);
+      }
+    }
+    
+    if (!weatherData) {
+      let lat = 13.75;
+      let lon = 100.51;
+      
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500 });
+        });
+        lat = position.coords.latitude;
+        lon = position.coords.longitude;
+      } catch (e) {
+        console.warn("Geolocation failed, using default coords:", e.message);
+      }
+      
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode&current_weather=true&timezone=auto`;
+      
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          weatherData = await response.json();
+          localStorage.setItem(CACHE_DATA_KEY, JSON.stringify(weatherData));
+          localStorage.setItem(CACHE_TIME_KEY, now.toString());
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather forecast:", err);
+      }
+    }
+    
+    if (weatherData) {
+      try {
+        currentWeatherCode = weatherData.current_weather.weathercode;
+        
+        weatherDataGrouped = {};
+        const times = weatherData.hourly.time;
+        const temps = weatherData.hourly.temperature_2m;
+        const codes = weatherData.hourly.weathercode;
+        
+        for (let k = 0; k < times.length; k++) {
+          const dateStr = times[k].substring(0, 10);
+          const hourStr = times[k].substring(11, 16);
+          
+          if (!weatherDataGrouped[dateStr]) {
+            weatherDataGrouped[dateStr] = [];
+          }
+          weatherDataGrouped[dateStr].push({
+            hour: hourStr,
+            temp: temps[k],
+            code: codes[k]
+          });
+        }
+        
+        weatherDays = Object.keys(weatherDataGrouped).sort();
+        activeDayIndex = 0;
+        
+        renderActiveDayForecast();
+      } catch (err) {
+        console.error("Error formatting weather response:", err);
+      }
+    }
+  }
+
+  // Bind weather buttons
+  const btnWeatherPrev = document.getElementById('btn-weather-prev-day');
+  const btnWeatherNext = document.getElementById('btn-weather-next-day');
+  
+  if (btnWeatherPrev) {
+    btnWeatherPrev.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeDayIndex > 0) {
+        activeDayIndex--;
+        renderActiveDayForecast();
+      }
+    });
+  }
+  
+  if (btnWeatherNext) {
+    btnWeatherNext.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeDayIndex < weatherDays.length - 1) {
+        activeDayIndex++;
+        renderActiveDayForecast();
+      }
+    });
+  }
+
+  // --- Calendar Popup Events & Render ---
+  const dayLabelBtn = document.getElementById('weather-current-day-label');
+  const calModal = document.getElementById('calendar-modal');
+  const btnCalClose = document.getElementById('btn-calendar-close');
+  const btnCalPrevYear = document.getElementById('btn-cal-prev-year');
+  const btnCalNextYear = document.getElementById('btn-cal-next-year');
+
+  if (dayLabelBtn) {
+    dayLabelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openCalendarModal();
+    });
+  }
+
+  if (btnCalClose) {
+    btnCalClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeCalendarModal();
+    });
+  }
+
+  if (btnCalPrevYear) {
+    btnCalPrevYear.addEventListener('click', (e) => {
+      e.stopPropagation();
+      calendarYear--;
+      renderCalendarGrid();
+    });
+  }
+
+  if (btnCalNextYear) {
+    btnCalNextYear.addEventListener('click', (e) => {
+      e.stopPropagation();
+      calendarYear++;
+      renderCalendarGrid();
+    });
+  }
+
+  if (calModal) {
+    // Close on click outside the card
+    calModal.addEventListener('click', (e) => {
+      if (e.target === calModal) {
+        closeCalendarModal();
+      }
+    });
+    
+    const calCard = calModal.querySelector('.calendar-card');
+    if (calCard) {
+      calCard.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  }
+
+  let calendarYear = new Date().getFullYear();
+
+  function openCalendarModal() {
+    if (calModal) {
+      const activeDateStr = weatherDays[activeDayIndex];
+      if (activeDateStr) {
+        calendarYear = new Date(activeDateStr).getFullYear();
+      } else {
+        calendarYear = new Date().getFullYear();
+      }
+      renderCalendarGrid();
+      calModal.classList.add('active');
+    }
+  }
+
+  function closeCalendarModal() {
+    if (calModal) {
+      calModal.classList.remove('active');
+    }
+  }
+
+  function renderCalendarGrid() {
+    const gridContainer = document.getElementById('calendar-months-grid');
+    const yearLabel = document.getElementById('calendar-year-label');
+    if (!gridContainer || !yearLabel) return;
+
+    yearLabel.textContent = calendarYear;
+
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const selectedStr = weatherDays[activeDayIndex];
+
+    let html = '';
+
+    for (let m = 0; m < 12; m++) {
+      const firstDay = new Date(calendarYear, m, 1).getDay();
+      const numDays = new Date(calendarYear, m + 1, 0).getDate();
+
+      html += `
+        <div class="calendar-month-box">
+          <div class="calendar-month-title">${monthNames[m]}</div>
+          <div class="calendar-days-header">
+            ${dayLetters.map(d => `<span>${d}</span>`).join('')}
+          </div>
+          <div class="calendar-days-grid">
+      `;
+
+      for (let empty = 0; empty < firstDay; empty++) {
+        html += `<span class="calendar-day empty"></span>`;
+      }
+
+      for (let d = 1; d <= numDays; d++) {
+        const dateString = `${calendarYear}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isToday = (dateString === todayStr);
+        const isSelected = (dateString === selectedStr);
+        const forecastIndex = weatherDays.indexOf(dateString);
+        const isForecastable = (forecastIndex !== -1);
+
+        let classes = ['calendar-day'];
+        if (isToday) classes.push('today');
+        if (isSelected) classes.push('selected');
+        if (isForecastable) classes.push('forecastable');
+
+        html += `
+          <span class="${classes.join(' ')}" data-date="${dateString}">
+            ${d}
+          </span>
+        `;
+      }
+
+      // Pad remaining cells to always have exactly 42 cells (6 rows * 7 columns)
+      const totalCells = firstDay + numDays;
+      const extraEmpty = 42 - totalCells;
+      for (let empty = 0; empty < extraEmpty; empty++) {
+        html += `<span class="calendar-day empty"></span>`;
+      }
+
+      html += `
+          </div>
+        </div>
+      `;
+    }
+
+    gridContainer.innerHTML = html;
+
+    const dayCells = gridContainer.querySelectorAll('.calendar-day:not(.empty)');
+    dayCells.forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dateStr = cell.getAttribute('data-date');
+        const forecastIndex = weatherDays.indexOf(dateStr);
+        if (forecastIndex !== -1) {
+          activeDayIndex = forecastIndex;
+          renderActiveDayForecast();
+          closeCalendarModal();
+        } else {
+          showCalendarToast("Forecast only available for the 7-day period (dashed outline).");
+        }
+      });
+    });
+  }
+
+  function showCalendarToast(msg) {
+    let toast = document.getElementById('calendar-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'calendar-toast';
+      toast.style.cssText = `
+        position: absolute;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(239, 68, 68, 0.95);
+        color: #ffffff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1100;
+        pointer-events: none;
+        text-align: center;
+        white-space: nowrap;
+      `;
+      document.querySelector('.calendar-card').appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+    }, 2500);
+  }
+
+  // Convert vertical wheel scrolling to horizontal scroll inside weather-hourly-container
+  const hourlyContainer = document.getElementById('weather-hourly-container');
+  if (hourlyContainer) {
+    hourlyContainer.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        hourlyContainer.scrollLeft += e.deltaY;
+      }
+    });
+  }
+
+  // Pre-load weather when page starts
+  loadWeatherForecast();
 
   // --- Drag and drop loader setup ---
   // Bind drag-and-drop to all editor input textareas

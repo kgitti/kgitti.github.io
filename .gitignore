@@ -6,3 +6,6 @@ requirement.md
 # Ignore OS metadata
 .DS_Store
 Thumbs.db
+
+# local
+requirement/*
