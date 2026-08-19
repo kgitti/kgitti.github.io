@@ -2086,7 +2086,8 @@ document.addEventListener('DOMContentLoaded', () => {
     wind: new Audio('sounds/wind.mp3'),
     forest: new Audio('sounds/forest.mp3'),
     campfire: new Audio('sounds/campfire.mp3'),
-    river: new Audio('sounds/river.mp3')
+    river: new Audio('sounds/river.mp3'),
+    bell: new Audio('sounds/bell.mp3')
   };
 
   // Configure loop property for loops
@@ -2183,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  let lastAmbientVolumes = { rain: 0, wind: 0, forest: 0, campfire: 0, river: 0, brown: 0 };
+  let lastAmbientVolumes = { rain: 0, wind: 0, forest: 0, campfire: 0, river: 0, bell: 0, brown: 0 };
   let isAmbientPlaying = false;
 
   function updateAmbientPlayPauseButton(state) {
@@ -2212,7 +2213,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function stopAllAmbientSounds(saveState = false) {
-    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'bell', 'brown'];
     
     if (saveState) {
       soundIds.forEach(id => {
@@ -2239,7 +2240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function playAllAmbientSounds() {
     initAudioContext();
-    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'bell', 'brown'];
 
     // Check if there are any sliders currently set above 0 in the UI
     let hasAnySliderValue = soundIds.some(id => {
@@ -2297,7 +2298,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isAnyAmbientSoundActive() {
-    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+    const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'bell', 'brown'];
     return soundIds.some(id => {
       const slider = document.getElementById(`volume-${id}`);
       return slider && parseInt(slider.value, 10) > 0;
@@ -2575,7 +2576,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Bind volume range sliders
-  const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'brown'];
+  const soundIds = ['rain', 'wind', 'forest', 'campfire', 'river', 'bell', 'brown'];
   soundIds.forEach(id => {
     const slider = document.getElementById(`volume-${id}`);
     if (slider) {
