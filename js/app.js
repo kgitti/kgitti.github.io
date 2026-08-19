@@ -3209,4 +3209,56 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop(textareaTextA);
   setupDragAndDrop(textareaTextB);
   setupDragAndDrop(noteTextarea);
+
+  // --- Wallpaper Switcher ---
+  function initWallpaperSwitcher() {
+    const btnWallpaper = document.getElementById('btn-wallpaper-switch');
+    const overlay = document.getElementById('dashboard-overlay');
+    if (!btnWallpaper || !overlay) return;
+
+    const wallpapers = [
+      {
+        type: 'default',
+        url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1920&q=80',
+        title: 'Default Landscape'
+      },
+      {
+        type: 'bing',
+        url: 'https://bing.biturl.top/?resolution=1920&format=image&index=0',
+        title: 'Bing Daily Wallpaper'
+      },
+      {
+        type: 'random',
+        url: 'https://picsum.photos/1920/1080',
+        title: 'Random scenic (Picsum)'
+      }
+    ];
+
+    let currentType = localStorage.getItem('dashboard_wallpaper_type') || 'default';
+    
+    function applyWallpaper(type, isClick = false) {
+      let wp = wallpapers.find(w => w.type === type);
+      if (!wp) wp = wallpapers[0];
+      
+      let url = wp.url;
+      if (type === 'random' && isClick) {
+        url = `${wp.url}?sig=${Date.now()}`;
+      }
+      
+      overlay.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45)), url('${url}')`;
+      btnWallpaper.title = `Wallpaper: ${wp.title} (Click to Switch)`;
+      localStorage.setItem('dashboard_wallpaper_type', type);
+    }
+
+    applyWallpaper(currentType);
+
+    btnWallpaper.addEventListener('click', () => {
+      let currentIndex = wallpapers.findIndex(w => w.type === currentType);
+      let nextIndex = (currentIndex + 1) % wallpapers.length;
+      currentType = wallpapers[nextIndex].type;
+      applyWallpaper(currentType, true);
+    });
+  }
+
+  initWallpaperSwitcher();
 });

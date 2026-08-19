@@ -1302,6 +1302,15 @@ footer {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
+#btn-wallpaper-switch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .weather-current-day-label {
   font-size: 13px;
   font-weight: 600;
