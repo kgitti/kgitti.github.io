@@ -357,6 +357,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   textareaJson.addEventListener('input', validateJSONQuietly);
 
+  function lenientJsonRepair(text) {
+    let cleaned = text.trim();
+
+    // Remove single-line and multi-line comments
+    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+
+    // Replace unquoted wildcard/asterisk placeholders (like **********)
+    cleaned = cleaned.replace(/:\s*(\*+)/g, ':"$1"');
+    
+    // Replace unquoted common keywords (undefined, NaN)
+    cleaned = cleaned.replace(/:\s*undefined\b/g, ':null');
+    cleaned = cleaned.replace(/:\s*NaN\b/g, ':null');
+
+    // Replace single quotes wrapping keys with double quotes
+    cleaned = cleaned.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'\s*:/g, '"$1":');
+    // Replace single quotes wrapping string values with double quotes
+    cleaned = cleaned.replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, ':"$1"');
+
+    // Remove trailing commas before closing braces/brackets
+    cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
+
+    // Add double quotes to unquoted alphanumeric/dash keys
+    cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_-]*)\s*:/g, '$1"$2":');
+
+    return cleaned;
+  }
+
   btnFormatJson.addEventListener('click', () => {
     const text = textareaJson.value.trim();
     if (!text) return;
@@ -374,8 +401,25 @@ document.addEventListener('DOMContentLoaded', () => {
       updateStatusForTool('json-format');
       buildJSONTree(parsed);
     } catch (e) {
-      const lineNum = extractLineNumber(e, textareaJson.value);
-      showError(`Syntax Error: Failed to format JSON. ${e.message}`, lineNum, lineNumbersJson.id);
+      // Try to repair and format
+      try {
+        const repaired = lenientJsonRepair(text);
+        const parsed = JSON.parse(repaired);
+        hideError();
+        
+        const indentVal = selectIndentJson.value;
+        const indent = indentVal === 'tab' ? '\t' : parseInt(indentVal, 10);
+        
+        const formatted = JSON.stringify(parsed, null, indent);
+        textareaJson.value = formatted;
+        
+        updateLinesJson();
+        updateStatusForTool('json-format');
+        buildJSONTree(parsed);
+      } catch (repairErr) {
+        const lineNum = extractLineNumber(e, textareaJson.value);
+        showError(`Syntax Error: Failed to format JSON. ${e.message}`, lineNum, lineNumbersJson.id);
+      }
     }
   });
 
@@ -391,8 +435,20 @@ document.addEventListener('DOMContentLoaded', () => {
       updateStatusForTool('json-format');
       buildJSONTree(parsed);
     } catch (e) {
-      const lineNum = extractLineNumber(e, textareaJson.value);
-      showError(`Syntax Error: Failed to compress JSON. ${e.message}`, lineNum, lineNumbersJson.id);
+      // Try to repair and compress
+      try {
+        const repaired = lenientJsonRepair(text);
+        const parsed = JSON.parse(repaired);
+        hideError();
+        const compressed = JSON.stringify(parsed);
+        textareaJson.value = compressed;
+        updateLinesJson();
+        updateStatusForTool('json-format');
+        buildJSONTree(parsed);
+      } catch (repairErr) {
+        const lineNum = extractLineNumber(e, textareaJson.value);
+        showError(`Syntax Error: Failed to compress JSON. ${e.message}`, lineNum, lineNumbersJson.id);
+      }
     }
   });
 
@@ -700,8 +756,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function beautifySQL(sql) {
     if (!sql) return '';
     
-    // Split query into tokens while preserving strings intact, supporting decimals and dots
-    const regex = /("[^"]*"|'[^']*'|`[^`]*`|\b\d+(?:\.\d+)?\b|\b[a-zA-Z_][a-zA-Z0-9_]*\b|[-+*\/=<>!]+|\.|\s+|,|;|\(|\))/g;
+    // Robust regex: matches strings, comments, numbers, words (including Thai), operators, dots, commas, semicolons, brackets, and fallback single chars
+    const regex = /("[^"]*"|'[^']*'|`[^`]*`|\/\*[\s\S]*?\*\/|--[^\r\n]*|#[^\r\n]*|\b\d+(?:\.\d+)?\b|[\w\u0e00-\u0e7f]+|[-+*\/=<>!]+|\.|\s+|,|;|\(|\)|.)/gu;
     const tokens = sql.match(regex) || [sql];
     
     const keywords = new Set([
@@ -722,10 +778,15 @@ document.addEventListener('DOMContentLoaded', () => {
       let token = tokens[i];
       const trimmed = token.trim();
       
-      if (!trimmed) continue; // skip raw white spaces tokens
+      if (!trimmed) continue; // skip raw white space tokens
+      
+      // Comments
+      if (trimmed.startsWith('--') || trimmed.startsWith('#') || trimmed.startsWith('/*')) {
+        result = result.trimEnd() + '\n' + trimmed + '\n';
+        continue;
+      }
       
       const upper = trimmed.toUpperCase();
-      
       if (keywords.has(upper)) {
         token = upper; // convert to capitalized keywords
       }
@@ -764,8 +825,24 @@ document.addEventListener('DOMContentLoaded', () => {
         result = result.trimEnd() + ') ';
         continue;
       }
+
+      if (token === ';') {
+        result = result.trimEnd() + ';\n\n';
+        continue;
+      }
+
+      // Space operators properly
+      if (/^[-+*\/=<>!]+$/.test(token)) {
+        result = result.trimEnd() + ' ' + token + ' ';
+        continue;
+      }
       
-      result += token + ' ';
+      // Default: append token with space, check if we need to avoid space after dots or open parens
+      if (result.endsWith('.') || result.endsWith('(') || result.endsWith('\n')) {
+        result += token;
+      } else {
+        result += token + ' ';
+      }
     }
     
     return result.trim();
@@ -2788,11 +2865,58 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode&current_weather=true&timezone=auto`;
+      const geoUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
       
       try {
-        const response = await fetch(url);
-        if (response.ok) {
-          weatherData = await response.json();
+        const [weatherRes, geoRes] = await Promise.all([
+          fetch(url),
+          fetch(geoUrl).catch(err => {
+            console.warn("Geocoding fetch failed:", err);
+            return null;
+          })
+        ]);
+        
+        if (weatherRes.ok) {
+          weatherData = await weatherRes.json();
+          
+          let cityName = 'Bangkok';
+          if (geoRes && geoRes.ok) {
+            try {
+              const geoData = await geoRes.json();
+              
+              let district = '';
+              let city = '';
+              if (geoData.localityInfo && Array.isArray(geoData.localityInfo.administrative)) {
+                // Find adminLevel 6 (district / amphoe / khet)
+                const districtObj = geoData.localityInfo.administrative.find(item => item.adminLevel === 6);
+                if (districtObj) {
+                  district = districtObj.name;
+                }
+                // Find adminLevel 4 (province / city / Krung Thep Maha Nakhon)
+                const cityObj = geoData.localityInfo.administrative.find(item => item.adminLevel === 4);
+                if (cityObj) {
+                  city = cityObj.name;
+                  // Simplify "Krung Thep Maha Nakhon" to "Bangkok" for clean display
+                  if (city === 'Krung Thep Maha Nakhon') {
+                    city = 'Bangkok';
+                  }
+                }
+              }
+              
+              if (!city) city = geoData.city || geoData.principalSubdivision || 'Bangkok';
+              if (!district) district = geoData.locality || '';
+              
+              if (district && city && district !== city) {
+                cityName = `${district}, ${city}`;
+              } else {
+                cityName = city || district || 'Bangkok';
+              }
+            } catch (err) {
+              console.warn("Failed to parse geocoding JSON:", err);
+            }
+          }
+          weatherData.cityName = cityName;
+          
           localStorage.setItem(CACHE_DATA_KEY, JSON.stringify(weatherData));
           localStorage.setItem(CACHE_TIME_KEY, now.toString());
         }
@@ -2802,6 +2926,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (weatherData) {
+      const locEl = document.getElementById('weather-location');
+      const divEl = document.getElementById('weather-divider');
+      if (locEl) {
+        locEl.textContent = '📍 ' + (weatherData.cityName || 'Bangkok');
+        locEl.style.display = 'inline-flex';
+      }
+      if (divEl) {
+        divEl.style.display = 'inline-flex';
+      }
+      
       try {
         currentWeatherCode = weatherData.current_weather.weathercode;
         

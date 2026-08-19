@@ -425,6 +425,8 @@
         <div class="weather-widget" id="weather-widget">
           <div class="weather-widget-header">
             <div class="weather-info-summary">
+              <span class="weather-location" id="weather-location" style="display: none;"></span>
+              <span class="weather-divider" id="weather-divider" style="margin: 0 6px; color: rgba(255, 255, 255, 0.6); display: none;">•</span>
               <span class="weather-status-text" id="weather-status-text">Fetching weather conditions...</span>
             </div>
             <div class="weather-day-navigation">
@@ -482,105 +484,107 @@
         <!-- Soundscapes Ambient Mixer (Placed under Clock & Focus Timer) -->
         <div class="soundscapes-wrapper">
           <div class="soundscapes-buttons-row">
-            <button id="btn-soundscapes-toggle" class="btn-soundscapes-toggle" title="Ambient Soundscapes">
-              <svg class="ambient-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" style="margin-right: 4px; vertical-align: middle;">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              </svg>
-              Ambient Sounds
-            </button>
+            <div class="soundscapes-toggle-wrapper" style="position: relative; display: inline-flex;">
+              <button id="btn-soundscapes-toggle" class="btn-soundscapes-toggle" title="Ambient Soundscapes">
+                <svg class="ambient-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" style="margin-right: 4px; vertical-align: middle;">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                </svg>
+                Ambient Sounds
+              </button>
+              <div id="soundscapes-drawer" class="soundscapes-drawer">
+                <div class="soundscapes-drawer-header">
+                  <h4>Mix Focus Sounds</h4>
+                </div>
+                <div class="soundscapes-list">
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
+                        <line x1="8" y1="16" x2="8" y2="22"/>
+                        <line x1="12" y1="18" x2="12" y2="22"/>
+                        <line x1="16" y1="16" x2="16" y2="22"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Rain</span>
+                    <input type="range" id="volume-rain" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 10h18a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3"/>
+                        <path d="M2 14h12a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3"/>
+                        <path d="M2 18h4a2 2 0 0 0 2-2 2 2 0 0 0-2-2"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Wind</span>
+                    <input type="range" id="volume-wind" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L3 15h18L12 2z"/>
+                        <path d="M12 10L6 19h12l-6-9z"/>
+                        <line x1="12" y1="19" x2="12" y2="22"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Forest</span>
+                    <input type="range" id="volume-forest" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Campfire</span>
+                    <input type="range" id="volume-campfire" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 6c4-2 6 2 10 0s6-2 10 0"/>
+                        <path d="M2 12c4-2 6 2 10 0s6-2 10 0"/>
+                        <path d="M2 18c4-2 6 2 10 0s6-2 10 0"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">River</span>
+                    <input type="range" id="volume-river" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Zen Bell</span>
+                    <input type="range" id="volume-bell" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                  <div class="soundscape-item">
+                    <span class="sound-emoji">
+                      <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 10v4"/>
+                        <path d="M6 6v12"/>
+                        <path d="M9 10v4"/>
+                        <path d="M12 4v16"/>
+                        <path d="M15 8v8"/>
+                        <path d="M18 11v2"/>
+                        <path d="M21 9v6"/>
+                      </svg>
+                    </span>
+                    <span class="sound-name">Focus</span>
+                    <input type="range" id="volume-brown" class="sound-volume" min="0" max="100" value="0">
+                  </div>
+                </div>
+              </div>
+            </div>
             <button id="btn-soundscapes-pause" class="btn-soundscapes-toggle btn-soundscapes-pause" title="Play Ambient Sounds">
               <svg class="ambient-pause-icon" id="icon-soundscapes-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11" style="margin-right: 4px; vertical-align: middle;">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
               <span id="text-soundscapes-pause">Play</span>
             </button>
-          </div>
-          <div id="soundscapes-drawer" class="soundscapes-drawer">
-            <div class="soundscapes-drawer-header">
-              <h4>Mix Focus Sounds</h4>
-            </div>
-            <div class="soundscapes-list">
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
-                    <line x1="8" y1="16" x2="8" y2="22"/>
-                    <line x1="12" y1="18" x2="12" y2="22"/>
-                    <line x1="16" y1="16" x2="16" y2="22"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Rain</span>
-                <input type="range" id="volume-rain" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 10h18a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3"/>
-                    <path d="M2 14h12a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3"/>
-                    <path d="M2 18h4a2 2 0 0 0 2-2 2 2 0 0 0-2-2"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Wind</span>
-                <input type="range" id="volume-wind" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2L3 15h18L12 2z"/>
-                    <path d="M12 10L6 19h12l-6-9z"/>
-                    <line x1="12" y1="19" x2="12" y2="22"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Forest</span>
-                <input type="range" id="volume-forest" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Campfire</span>
-                <input type="range" id="volume-campfire" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 6c4-2 6 2 10 0s6-2 10 0"/>
-                    <path d="M2 12c4-2 6 2 10 0s6-2 10 0"/>
-                    <path d="M2 18c4-2 6 2 10 0s6-2 10 0"/>
-                  </svg>
-                </span>
-                <span class="sound-name">River</span>
-                <input type="range" id="volume-river" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Zen Bell</span>
-                <input type="range" id="volume-bell" class="sound-volume" min="0" max="100" value="0">
-              </div>
-              <div class="soundscape-item">
-                <span class="sound-emoji">
-                  <svg class="sound-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 10v4"/>
-                    <path d="M6 6v12"/>
-                    <path d="M9 10v4"/>
-                    <path d="M12 4v16"/>
-                    <path d="M15 8v8"/>
-                    <path d="M18 11v2"/>
-                    <path d="M21 9v6"/>
-                  </svg>
-                </span>
-                <span class="sound-name">Focus</span>
-                <input type="range" id="volume-brown" class="sound-volume" min="0" max="100" value="0">
-              </div>
-            </div>
           </div>
         </div>
 
