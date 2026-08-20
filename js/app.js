@@ -357,11 +357,108 @@ document.addEventListener('DOMContentLoaded', () => {
 
   textareaJson.addEventListener('input', validateJSONQuietly);
 
+  function balanceJsonBrackets(cleaned) {
+    let insideDoubleQuote = false;
+    let insideSingleQuote = false;
+    let escaped = false;
+    let stack = [];
+
+    for (let i = 0; i < cleaned.length; i++) {
+      let char = cleaned[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"' && !insideSingleQuote) {
+        insideDoubleQuote = !insideDoubleQuote;
+        continue;
+      }
+      if (char === "'" && !insideDoubleQuote) {
+        insideSingleQuote = !insideSingleQuote;
+        continue;
+      }
+      if (!insideDoubleQuote && !insideSingleQuote) {
+        if (char === '{') {
+          stack.push('}');
+        } else if (char === '[') {
+          stack.push(']');
+        } else if (char === '}') {
+          if (stack.length > 0 && stack[stack.length - 1] === '}') {
+            stack.pop();
+          }
+        } else if (char === ']') {
+          if (stack.length > 0 && stack[stack.length - 1] === ']') {
+            stack.pop();
+          }
+        } else if (char === ':') {
+          // If we see a colon but we are inside an array context (top of stack is ']')
+          if (stack.length > 0 && stack[stack.length - 1] === ']') {
+            // We must have missed a closing bracket ']' before the key of this colon.
+            // Let's find the start of the key to insert '],' before it.
+            let keyStartIdx = -1;
+            let j = i - 1;
+            // Skip whitespace backward
+            while (j >= 0 && /\s/.test(cleaned[j])) {
+              j--;
+            }
+            if (j >= 0 && (cleaned[j] === '"' || cleaned[j] === "'")) {
+              const quoteChar = cleaned[j];
+              j--;
+              // Find opening quote
+              while (j >= 0) {
+                if (cleaned[j] === quoteChar && cleaned[j - 1] !== '\\') {
+                  keyStartIdx = j;
+                  break;
+                }
+                j--;
+              }
+            } else {
+              // Key is unquoted (lenient keys)
+              while (j >= 0 && /[a-zA-Z0-9_-]/.test(cleaned[j])) {
+                j--;
+              }
+              keyStartIdx = j + 1;
+            }
+
+            if (keyStartIdx !== -1) {
+              // Insert '],' before the key to close the array and separate it from the key
+              cleaned = cleaned.slice(0, keyStartIdx) + '],' + cleaned.slice(keyStartIdx);
+              // Pop the ']' from stack since we just closed it
+              stack.pop();
+              // Since we inserted two characters, adjust the loop index i
+              i += 2;
+            }
+          }
+        }
+      }
+    }
+
+    if (insideDoubleQuote) {
+      cleaned += '"';
+    } else if (insideSingleQuote) {
+      cleaned += "'";
+    }
+
+    cleaned = cleaned.trim();
+    while (stack.length > 0) {
+      cleaned += stack.pop();
+    }
+
+    return cleaned;
+  }
+
   function lenientJsonRepair(text) {
     let cleaned = text.trim();
 
     // Remove single-line and multi-line comments
     cleaned = cleaned.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+
+    // Balance unclosed quotes and brackets
+    cleaned = balanceJsonBrackets(cleaned);
 
     // Replace unquoted wildcard/asterisk placeholders (like **********)
     cleaned = cleaned.replace(/:\s*(\*+)/g, ':"$1"');
@@ -380,6 +477,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add double quotes to unquoted alphanumeric/dash keys
     cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_-]*)\s*:/g, '$1"$2":');
+
+    // Run trailing comma replacement a second time in case quoting introduced new trailing comma syntax
+    cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
 
     return cleaned;
   }
